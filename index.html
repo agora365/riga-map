@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Riga Density Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { height: 100vh; width: 100%; }
+        
+        /* Mobile-friendly Info Box */
+        .info { 
+            padding: 10px; 
+            background: rgba(255,255,255,0.95); 
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+            border-radius: 8px; 
+            font-size: 12px;
+            width: 200px; /* Smaller width for mobile */
+        }
+        .info h4 { margin: 0 0 5px; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px; font-size: 14px;}
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        
+        /* Floating Buttons */
+        .btn-wrapper { position: absolute; top: 10px; left: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        
+        .map-btn {
+            padding: 10px 15px; 
+            background: #2c3e50; color: white; 
+            cursor: pointer; border-radius: 50px; 
+            font-weight: bold; border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            text-align: center; font-size: 14px;
+        }
+        .back-btn { display: none; background: #e74c3c; } /* Red for back */
+        .locate-btn { background: #3498db; } /* Blue for location */
+        
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="btn-wrapper">
+    <div id="backButton" class="map-btn back-btn" onclick="resetMap()">⬅ Back</div>
+    <div class="map-btn locate-btn" onclick="locateUser()">📍 Find Me</div>
+</div>
+
+<script src="neighborhood_data.js"></script>
+
+<script>
+    // 1. Initialize Map
+    var map = L.map('map').setView([56.9496, 24.1052], 11);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    // --- VARIABLES ---
+    var neighborhoodLayer;
+    var buildingsLayer = null;
+    var userMarker = null;
+
+    // --- GEOLOCATION LOGIC ---
+    function locateUser() {
+        map.locate({setView: true, maxZoom: 16});
+    }
+
+    function onLocationFound(e) {
+        var radius = e.accuracy / 2;
+        if (userMarker) map.removeLayer(userMarker);
+        
+        userMarker = L.marker(e.latlng).addTo(map)
+            .bindPopup("You are here").openPopup();
+        
+        L.circle(e.latlng, radius).addTo(map);
+    }
+    
+    function onLocationError(e) {
+        alert(e.message);
+    }
+
+    map.on('locationfound', onLocationFound);
+    map.on('locationerror', onLocationError);
+
+    // --- STYLING ---
+    function getColor(d) {
+        return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
+               d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
+               d > 0     ? '#FED976' : '#FFEDA0';
+    }
+
+    function style(feature) {
+        return {
+            fillColor: getColor(feature.properties.Total_Units),
+            weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7
+        };
+    }
+
+    function buildingStyle(feature) {
+        return { fillColor: '#2c3e50', weight: 1, opacity: 1, color: '#555', fillOpacity: 0.9 };
+    }
+
+    // --- INTERACTION ---
+    function onNeighborhoodClick(e) {
+        var layer = e.target;
+        var props = layer.feature.properties;
+        var safeName = props.safe_id; 
+
+        if (!safeName) return;
+
+        console.log("Loading:", safeName);
+        map.fitBounds(layer.getBounds());
+        if(neighborhoodLayer) map.removeLayer(neighborhoodLayer);
+        document.getElementById('backButton').style.display = 'block';
+        
+        loadBuildingScript(safeName);
+    }
+
+    function loadBuildingScript(safeName) {
+        var varName = "buildings_" + safeName;
+        if (window[varName]) {
+            drawBuildings(window[varName]);
+        } else {
+            var script = document.createElement('script');
+            script.src = 'building_chunks/buildings_' + safeName + '.js';
+            script.onload = function() {
+                if (window[varName]) drawBuildings(window[varName]);
+            };
+            document.head.appendChild(script);
+        }
+    }
+
+    function drawBuildings(geojsonData) {
+        if (buildingsLayer) map.removeLayer(buildingsLayer);
+        buildingsLayer = L.geoJson(geojsonData, {
+            style: buildingStyle,
+            onEachFeature: onBuildingFeature
+        }).addTo(map);
+    }
+
+    function onBuildingFeature(feature, layer) {
+        layer.on({
+            click: function(e) { // Changed to Click for mobile friendliness
+                var l = e.target;
+                l.setStyle({ weight: 2, color: '#00ffff', fillOpacity: 1 });
+                info.update(l.feature.properties, "building");
+            }
+        });
+    }
+
+    function resetMap() {
+        map.setView([56.9496, 24.1052], 11);
+        if (buildingsLayer) map.removeLayer(buildingsLayer);
+        if (neighborhoodLayer) map.addLayer(neighborhoodLayer);
+        document.getElementById('backButton').style.display = 'none';
+        info.update();
+    }
+
+    function onEachFeature(feature, layer) {
+        layer.on({
+            click: onNeighborhoodClick
+        });
+    }
+
+    // --- INFO BOX ---
+    var info = L.control();
+    info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info'); 
+        this.update();
+        return this._div;
+    };
+
+    info.update = function (props, type) {
+        if (!props) {
+            this._div.innerHTML = '<h4>Riga Data</h4>Click a neighborhood';
+            return;
+        }
+        
+        var title = (type === "neighborhood") ? props.apkaime : (props.Full_Address || props.Building_Cadastre_Nr);
+        var html = '<h4>' + title + '</h4>' +
+                   '<div style="text-align:center; margin-bottom:5px;">' +
+                   '<b>Total: ' + Math.round(props.Total_Units) + '</b></div>';
+
+        function row(label, val) { return '<div class="info-row"><span>' + label + ':</span> <b>' + Math.round(val) + '</b></div>'; }
+
+        html += row('0-25m²', props['[0-25]']);
+        html += row('25-50m²', props['[25-50]']);
+        html += row('50-75m²', props['[50-75]']);
+        html += row('75-100m²', props['[75-100]']);
+        html += row('100m²+', (props['[100-125]'] + props['[125-150]'] + props['[150-175]'] + props['[175-200]'] + props['[200+]']));
+
+        this._div.innerHTML = html;
+    };
+    info.addTo(map);
+
+    neighborhoodLayer = L.geoJson(rigaData, {
+        style: style,
+        onEachFeature: onEachFeature
+    }).addTo(map);
+
+</script>
+</body>
+</html>
