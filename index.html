@@ -12,20 +12,44 @@
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; width: 100%; }
         
-        /* Info Box */
+        /* Info Box Styles */
         .info { 
-            padding: 10px; 
-            background: rgba(255,255,255,0.95); 
+            padding: 12px; 
+            background: rgba(255,255,255,0.96); 
             box-shadow: 0 0 15px rgba(0,0,0,0.2); 
             border-radius: 8px; 
-            font-size: 12px;
-            width: 220px; 
-            max-height: 80vh; /* Prevent it from being too tall on small screens */
+            font-size: 13px;
+            width: 260px; /* Slightly wider to fit percentages */
+            max-height: 80vh; 
             overflow-y: auto;
         }
-        .info h4 { margin: 0 0 5px; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px; font-size: 14px;}
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-        .info-total { text-align: center; margin-bottom: 8px; font-weight: bold; border-bottom: 1px dashed #ccc; padding-bottom: 5px;}
+        .info h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
+        
+        /* Total Row Style */
+        .info-total { 
+            text-align: center; 
+            margin-bottom: 10px; 
+            padding-bottom: 5px; 
+            border-bottom: 1px dashed #ccc; 
+            font-weight: bold; 
+            color: #333;
+        }
+
+        /* Table of Contents Style Rows (Dots between label and value) */
+        .info-row { 
+            display: flex; 
+            align-items: flex-end; /* Aligns dots to bottom of text */
+            margin-bottom: 4px; 
+        }
+        .label { white-space: nowrap; color: #555; }
+        .dots { 
+            flex-grow: 1; 
+            border-bottom: 1px dotted #aaa; 
+            margin: 0 5px 4px 5px; /* Adjust margin-bottom to align dots with text baseline */
+            opacity: 0.5;
+        }
+        .value { white-space: nowrap; }
+        .pct { font-size: 0.9em; color: #7f8c8d; font-weight: normal; margin-left: 3px; }
         
         /* Floating Buttons */
         .btn-wrapper { position: absolute; top: 10px; left: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
@@ -67,8 +91,6 @@
     var neighborhoodLayer;
     var buildingsLayer = null;
     var userMarker = null;
-    
-    // Track the currently active building (Red)
     var currentActiveBuilding = null;
 
     // --- GEOLOCATION ---
@@ -84,7 +106,7 @@
     }
     map.on('locationfound', onLocationFound);
 
-    // --- NEIGHBORHOOD STYLE ---
+    // --- STYLING ---
     function getColor(d) {
         return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
                d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
@@ -98,12 +120,11 @@
         };
     }
 
-    // --- BUILDING STYLE (Default) ---
     function buildingStyle(feature) {
         return { fillColor: '#2c3e50', weight: 1, opacity: 1, color: '#555', fillOpacity: 0.9 };
     }
 
-    // --- INTERACTION 1: NEIGHBORHOODS ---
+    // --- INTERACTIONS ---
     function highlightNeighborhood(e) {
         var layer = e.target;
         layer.setStyle({ weight: 4, color: '#666', dashArray: '', fillOpacity: 0.7 });
@@ -112,7 +133,6 @@
 
     function resetNeighborhood(e) {
         neighborhoodLayer.resetStyle(e.target);
-        // Only reset info if we haven't clicked/zoomed in yet
         if (document.getElementById('backButton').style.display === 'none') {
             info.update(); 
         }
@@ -126,17 +146,11 @@
         if (!safeName) return;
 
         console.log("Zooming to:", props.apkaime);
-        
-        // 1. Zoom
         map.fitBounds(layer.getBounds());
-
-        // 2. Load buildings
         if(neighborhoodLayer) map.removeLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'block';
         
-        // 3. Explicitly set Info Box to show Neighborhood Data immediately
         info.update(props, "neighborhood");
-
         loadBuildingScript(safeName);
     }
 
@@ -148,7 +162,7 @@
         });
     }
 
-    // --- INTERACTION 2: BUILDINGS ---
+    // --- BUILDING LOGIC ---
     function loadBuildingScript(safeName) {
         var varName = "buildings_" + safeName;
         if (window[varName]) {
@@ -165,10 +179,8 @@
 
     function drawBuildings(geojsonData) {
         if (buildingsLayer) map.removeLayer(buildingsLayer);
+        currentActiveBuilding = null; // Reset selection on new load
         
-        // Reset active building state when switching neighborhoods
-        currentActiveBuilding = null;
-
         buildingsLayer = L.geoJson(geojsonData, {
             style: buildingStyle,
             onEachFeature: onBuildingFeature
@@ -180,34 +192,26 @@
             click: function(e) {
                 var clickedLayer = e.target;
 
-                // 1. If there was a previously active building, turn it GREEN (Visited)
+                // Handle Highlight Logic (Red/Green)
                 if (currentActiveBuilding && currentActiveBuilding !== clickedLayer) {
                     currentActiveBuilding.setStyle({ 
-                        color: '#2ecc71', // Bright Green
-                        weight: 2, 
-                        fillOpacity: 0.8 
+                        color: '#2ecc71', // Previous -> Green
+                        weight: 2, fillOpacity: 0.8 
                     });
                 }
-
-                // 2. Make the new clicked building RED (Active)
                 clickedLayer.setStyle({ 
-                    color: '#ff0000', // Bright Red
-                    weight: 3, 
-                    fillOpacity: 0.8 
+                    color: '#ff0000', // Active -> Red
+                    weight: 3, fillOpacity: 0.8 
                 });
-                
                 clickedLayer.bringToFront();
-
-                // 3. Update State
                 currentActiveBuilding = clickedLayer;
 
-                // 4. Update Info Box
+                // Update Info
                 info.update(clickedLayer.feature.properties, "building");
             }
         });
     }
 
-    // --- RESET LOGIC ---
     function resetMap() {
         map.setView([56.9496, 24.1052], 11);
         if (buildingsLayer) map.removeLayer(buildingsLayer);
@@ -217,7 +221,7 @@
         currentActiveBuilding = null;
     }
 
-    // --- INFO BOX ---
+    // --- INFO BOX LOGIC ---
     var info = L.control();
     info.onAdd = function (map) {
         this._div = L.DomUtil.create('div', 'info'); 
@@ -227,24 +231,29 @@
 
     info.update = function (props, type) {
         if (!props) {
-            this._div.innerHTML = '<h4>Riga Data</h4>Hover over a neighborhood';
+            this._div.innerHTML = '<h4>Riga Data</h4>Click a neighborhood';
             return;
         }
         
         var title = (type === "neighborhood") ? props.apkaime : (props.Full_Address || props.Building_Cadastre_Nr);
-        
-        // Ensure total is valid
         var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
 
         var html = '<h4>' + title + '</h4>' +
-                   '<div class="info-total">' +
-                   'Total Units: ' + total + '</div>';
+                   '<div class="info-total">Total Units: ' + total + '</div>';
 
+        // Helper to create the dotted row with percentage
         function row(label, val) { 
-            return '<div class="info-row"><span>' + label + ':</span> <b>' + (val ? Math.round(val) : 0) + '</b></div>'; 
+            var v = val ? Math.round(val) : 0;
+            // Calculate Percentage
+            var pct = (total > 0) ? Math.round((v / total) * 100) : 0;
+            
+            return '<div class="info-row">' +
+                   '<span class="label">' + label + '</span>' +
+                   '<span class="dots"></span>' +
+                   '<span class="value"><b>' + v + '</b> <span class="pct">(' + pct + '%)</span></span>' +
+                   '</div>';
         }
 
-        // FULL BIN LIST
         html += row('0 - 25 m²', props['[0-25]']);
         html += row('25 - 50 m²', props['[25-50]']);
         html += row('50 - 75 m²', props['[50-75]']);
@@ -259,7 +268,6 @@
     };
     info.addTo(map);
 
-    // --- INIT ---
     neighborhoodLayer = L.geoJson(rigaData, {
         style: style,
         onEachFeature: onEachNeighborhood
