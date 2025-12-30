@@ -63,14 +63,19 @@
         .back-btn { display: none; background: #e74c3c; } 
         .locate-btn { background: #3498db; } 
 
-        /* HOUSE NUMBERS STYLE */
+        /* HOUSE NUMBERS STYLE (Fixed Color & Visibility) */
         .house-num-label {
-            font-size: 10px;
-            font-weight: bold;
-            color: #555;
+            font-size: 11px;
+            font-weight: 900; /* Extra Bold */
+            color: #d35400;   /* Burnt Orange / Rust Color */
             text-align: center;
             white-space: nowrap;
-            text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; /* White outline for readability */
+            /* Strong white outline to make it readable over grey buildings */
+            text-shadow: 
+                -1px -1px 0 #fff, 
+                 1px -1px 0 #fff, 
+                -1px  1px 0 #fff, 
+                 1px  1px 0 #fff; 
         }
     </style>
 </head>
@@ -98,7 +103,7 @@
     // --- VARIABLES ---
     var neighborhoodLayer;
     var buildingsLayer = null;
-    var houseNumbersLayer = null; // New variable for house numbers
+    var houseNumbersLayer = null; 
     var userMarker = null;
     var currentActiveBuilding = null;
     var isNumbersLoaded = false;
@@ -116,53 +121,66 @@
     }
     map.on('locationfound', onLocationFound);
 
-    // --- HOUSE NUMBERS LOGIC (NEW) ---
+    // --- HOUSE NUMBERS LOGIC (FIXED) ---
     function loadHouseNumbers() {
-        if (isNumbersLoaded) return; // Prevent double loading
+        if (isNumbersLoaded) return; 
 
         console.log("Fetching house numbers...");
+        
+        // Ensure the file name matches exactly what is on your GitHub
         fetch('riga_house_numbers.geojson')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("HTTP error " + response.status + " (File not found?)");
+                }
+                return response.json();
+            })
             .then(data => {
                 houseNumbersLayer = L.geoJson(data, {
                     pointToLayer: function (feature, latlng) {
-                        // Create a text-only label (DivIcon)
                         if (!feature.properties.number) return null;
+                        
+                        // Create Text Label
                         return L.marker(latlng, {
                             icon: L.divIcon({
                                 className: 'house-num-label',
                                 html: feature.properties.number,
-                                iconSize: [40, 20], // Width/Height
-                                iconAnchor: [20, 10] // Center point
+                                iconSize: [40, 20], 
+                                iconAnchor: [20, 10]
                             }),
-                            interactive: false // Click goes through to building
+                            interactive: false,
+                            pane: 'popupPane' // FORCE ON TOP OF EVERYTHING
                         });
                     }
                 });
                 
                 isNumbersLoaded = true;
                 
-                // If we are still zoomed in, add them immediately
+                // Add to map immediately if we are zoomed in
                 if (map.getZoom() >= 16) {
                     houseNumbersLayer.addTo(map);
                 }
             })
-            .catch(err => console.error("Error loading house numbers:", err));
+            .catch(err => {
+                console.error("Error loading house numbers:", err);
+                alert("Error: Could not load house numbers. Check if 'riga_house_numbers.geojson' is in your GitHub root folder.");
+            });
     }
 
     // Toggle numbers based on Zoom Level
     map.on('zoomend', function() {
         var z = map.getZoom();
         
-        // Threshold: Show numbers at Zoom 16 or higher (Neighborhood view)
+        // SHOW numbers at Zoom 16+ (Close up)
         if (z >= 16) {
             if (!isNumbersLoaded) {
                 loadHouseNumbers();
             } else if (houseNumbersLayer && !map.hasLayer(houseNumbersLayer)) {
                 map.addLayer(houseNumbersLayer);
             }
-        } else {
-            // Hide if zoomed out
+        } 
+        // HIDE numbers at Zoom 15 or lower
+        else {
             if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) {
                 map.removeLayer(houseNumbersLayer);
             }
@@ -184,7 +202,14 @@
     }
 
     function buildingStyle(feature) {
-        return { fillColor: '#2c3e50', weight: 1, opacity: 1, color: '#555', fillOpacity: 0.9 };
+        return { 
+            fillColor: '#2c3e50', 
+            weight: 1, 
+            opacity: 1, 
+            color: '#555', 
+            fillOpacity: 0.9,
+            pane: 'overlayPane' // Force buildings to stay below popups/markers
+        };
     }
 
     // --- INTERACTIONS ---
