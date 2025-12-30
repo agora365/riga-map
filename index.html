@@ -19,13 +19,12 @@
             box-shadow: 0 0 15px rgba(0,0,0,0.2); 
             border-radius: 8px; 
             font-size: 13px;
-            width: 260px; /* Slightly wider to fit percentages */
+            width: 260px; 
             max-height: 80vh; 
             overflow-y: auto;
         }
         .info h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
         
-        /* Total Row Style */
         .info-total { 
             text-align: center; 
             margin-bottom: 10px; 
@@ -35,17 +34,16 @@
             color: #333;
         }
 
-        /* Table of Contents Style Rows (Dots between label and value) */
         .info-row { 
             display: flex; 
-            align-items: flex-end; /* Aligns dots to bottom of text */
+            align-items: flex-end; 
             margin-bottom: 4px; 
         }
         .label { white-space: nowrap; color: #555; }
         .dots { 
             flex-grow: 1; 
             border-bottom: 1px dotted #aaa; 
-            margin: 0 5px 4px 5px; /* Adjust margin-bottom to align dots with text baseline */
+            margin: 0 5px 4px 5px; 
             opacity: 0.5;
         }
         .value { white-space: nowrap; }
@@ -64,6 +62,16 @@
         }
         .back-btn { display: none; background: #e74c3c; } 
         .locate-btn { background: #3498db; } 
+
+        /* HOUSE NUMBERS STYLE */
+        .house-num-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #555;
+            text-align: center;
+            white-space: nowrap;
+            text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; /* White outline for readability */
+        }
     </style>
 </head>
 <body>
@@ -90,8 +98,10 @@
     // --- VARIABLES ---
     var neighborhoodLayer;
     var buildingsLayer = null;
+    var houseNumbersLayer = null; // New variable for house numbers
     var userMarker = null;
     var currentActiveBuilding = null;
+    var isNumbersLoaded = false;
 
     // --- GEOLOCATION ---
     function locateUser() {
@@ -105,6 +115,59 @@
         L.circle(e.latlng, radius).addTo(map);
     }
     map.on('locationfound', onLocationFound);
+
+    // --- HOUSE NUMBERS LOGIC (NEW) ---
+    function loadHouseNumbers() {
+        if (isNumbersLoaded) return; // Prevent double loading
+
+        console.log("Fetching house numbers...");
+        fetch('riga_house_numbers.geojson')
+            .then(response => response.json())
+            .then(data => {
+                houseNumbersLayer = L.geoJson(data, {
+                    pointToLayer: function (feature, latlng) {
+                        // Create a text-only label (DivIcon)
+                        if (!feature.properties.number) return null;
+                        return L.marker(latlng, {
+                            icon: L.divIcon({
+                                className: 'house-num-label',
+                                html: feature.properties.number,
+                                iconSize: [40, 20], // Width/Height
+                                iconAnchor: [20, 10] // Center point
+                            }),
+                            interactive: false // Click goes through to building
+                        });
+                    }
+                });
+                
+                isNumbersLoaded = true;
+                
+                // If we are still zoomed in, add them immediately
+                if (map.getZoom() >= 16) {
+                    houseNumbersLayer.addTo(map);
+                }
+            })
+            .catch(err => console.error("Error loading house numbers:", err));
+    }
+
+    // Toggle numbers based on Zoom Level
+    map.on('zoomend', function() {
+        var z = map.getZoom();
+        
+        // Threshold: Show numbers at Zoom 16 or higher (Neighborhood view)
+        if (z >= 16) {
+            if (!isNumbersLoaded) {
+                loadHouseNumbers();
+            } else if (houseNumbersLayer && !map.hasLayer(houseNumbersLayer)) {
+                map.addLayer(houseNumbersLayer);
+            }
+        } else {
+            // Hide if zoomed out
+            if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) {
+                map.removeLayer(houseNumbersLayer);
+            }
+        }
+    });
 
     // --- STYLING ---
     function getColor(d) {
@@ -179,7 +242,7 @@
 
     function drawBuildings(geojsonData) {
         if (buildingsLayer) map.removeLayer(buildingsLayer);
-        currentActiveBuilding = null; // Reset selection on new load
+        currentActiveBuilding = null; 
         
         buildingsLayer = L.geoJson(geojsonData, {
             style: buildingStyle,
@@ -192,21 +255,19 @@
             click: function(e) {
                 var clickedLayer = e.target;
 
-                // Handle Highlight Logic (Red/Green)
                 if (currentActiveBuilding && currentActiveBuilding !== clickedLayer) {
                     currentActiveBuilding.setStyle({ 
-                        color: '#2ecc71', // Previous -> Green
+                        color: '#2ecc71', // Green
                         weight: 2, fillOpacity: 0.8 
                     });
                 }
                 clickedLayer.setStyle({ 
-                    color: '#ff0000', // Active -> Red
+                    color: '#ff0000', // Red
                     weight: 3, fillOpacity: 0.8 
                 });
                 clickedLayer.bringToFront();
                 currentActiveBuilding = clickedLayer;
 
-                // Update Info
                 info.update(clickedLayer.feature.properties, "building");
             }
         });
@@ -241,10 +302,8 @@
         var html = '<h4>' + title + '</h4>' +
                    '<div class="info-total">Total Units: ' + total + '</div>';
 
-        // Helper to create the dotted row with percentage
         function row(label, val) { 
             var v = val ? Math.round(val) : 0;
-            // Calculate Percentage
             var pct = (total > 0) ? Math.round((v / total) * 100) : 0;
             
             return '<div class="info-row">' +
