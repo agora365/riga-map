@@ -37,14 +37,16 @@
         .back-btn { display: none; background: #e74c3c; } 
         .locate-btn { background: #3498db; } 
 
-        /* HOUSE NUMBERS STYLE */
-        .house-num-label {
-            font-size: 12px;
+        /* UPDATED HOUSE NUMBERS STYLE */
+        /* Transparent tooltip background so it looks like text floating next to the dot */
+        .house-num-tooltip {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            font-size: 11px;
             font-weight: 900; 
             color: #d35400;   
-            text-align: center;
-            white-space: nowrap;
-            /* Strong white outline for visibility over buildings */
+            /* Text shadow for readability */
             text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; 
         }
     </style>
@@ -93,12 +95,14 @@
     }
     map.on('locationfound', onLocationFound);
 
-    // --- HOUSE NUMBERS LOGIC (FIXED) ---
+    // --- HOUSE NUMBERS LOGIC (OPTIMIZED) ---
     function loadHouseNumbers() {
+        // Prevent double loading
         if (isNumbersLoaded) return; 
 
         console.log("Fetching house numbers...");
         
+        // Ensure this matches your actual file name
         fetch('riga_house_numbers.geojson')
             .then(response => {
                 if (!response.ok) throw new Error("File not found or CORS error");
@@ -108,27 +112,38 @@
                 console.log("House numbers loaded. Features count:", data.features.length);
                 
                 houseNumbersLayer = L.geoJson(data, {
+                    // Optimized rendering using CircleMarkers (Canvas) instead of DOM Markers
                     pointToLayer: function (feature, latlng) {
-                        // FIX: Specifically looking for 'numurs' (lowercase)
                         var num = feature.properties.numurs; 
+                        var street = feature.properties.iela;
                         
-                        if (!num) return null; 
-                        
-                        return L.marker(latlng, {
-                            icon: L.divIcon({
-                                className: 'house-num-label',
-                                html: num,
-                                iconSize: [40, 20], 
-                                iconAnchor: [20, 10]
-                            }),
-                            interactive: false,
-                            pane: 'labels' 
+                        // Create the Orange Dot
+                        var marker = L.circleMarker(latlng, {
+                            radius: 3,              // Small dot size
+                            fillColor: "#ff8c00",   // Dark Orange
+                            color: "#fff",          // White border
+                            weight: 0.5,
+                            opacity: 1,
+                            fillOpacity: 1,
+                            pane: 'labels'
                         });
+
+                        // Attach the Text Label (Tooltip) if a number exists
+                        if (num) {
+                            marker.bindTooltip(num, {
+                                permanent: true,    // Always visible
+                                direction: 'right', // Text to the right of the dot
+                                className: 'house-num-tooltip', // Custom CSS class
+                                offset: [2, 0]      // Slight offset from the dot
+                            });
+                        }
+                        
+                        return marker;
                     }
                 });
                 
                 isNumbersLoaded = true;
-                checkZoomAndDisplay();
+                checkZoomAndDisplay(); // Render immediately if zoom is correct
             })
             .catch(err => {
                 console.error("Error loading house numbers:", err);
@@ -137,23 +152,32 @@
 
     function checkZoomAndDisplay() {
         var z = map.getZoom();
-        // Show at zoom 16+ (Neighborhood level)
-        if (z >= 16) {
+        
+        // --- LOGIC CHANGE ---
+        // Zoom 1-13: Hide everything
+        // Zoom 14+: Show Layer (Triggers fetch if not loaded)
+        
+        if (z >= 14) {
+            // 1. If data isn't loaded yet, load it now
             if (!isNumbersLoaded) {
                 loadHouseNumbers();
-            } else if (houseNumbersLayer && !map.hasLayer(houseNumbersLayer)) {
+            } 
+            // 2. If data IS loaded but not on map, add it
+            else if (houseNumbersLayer && !map.hasLayer(houseNumbersLayer)) {
                 map.addLayer(houseNumbersLayer);
             }
         } else {
+            // 3. If zoomed out, remove the layer to save performance
             if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) {
                 map.removeLayer(houseNumbersLayer);
             }
         }
     }
 
+    // Listen to zoom events to trigger the logic
     map.on('zoomend', checkZoomAndDisplay);
 
-    // --- STYLING & INTERACTIONS ---
+    // --- STYLING & INTERACTIONS (Existing Logic) ---
     function getColor(d) {
         return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
                d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
@@ -211,7 +235,10 @@
         if (buildingsLayer) map.removeLayer(buildingsLayer);
         currentActiveBuilding = null; 
         buildingsLayer = L.geoJson(geojsonData, { style: buildingStyle, onEachFeature: onBuildingFeature }).addTo(map);
-        checkZoomAndDisplay(); // Re-check to ensure numbers stay on top
+        // Ensure numbers stay on top of buildings
+        if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) {
+            houseNumbersLayer.bringToFront();
+        }
     }
 
     function onBuildingFeature(feature, layer) {
@@ -236,6 +263,7 @@
         document.getElementById('backButton').style.display = 'none';
         info.update();
         currentActiveBuilding = null;
+        checkZoomAndDisplay(); // Re-check zoom to hide numbers if we zoomed out
     }
 
     var info = L.control();
