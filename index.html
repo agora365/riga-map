@@ -38,15 +38,15 @@
         .locate-btn { background: #3498db; } 
 
         /* UPDATED HOUSE NUMBERS STYLE */
-        /* Transparent tooltip background so it looks like text floating next to the dot */
+        /* Transparent tooltip background so it looks like text floating in space */
         .house-num-tooltip {
             background: transparent;
             border: none;
             box-shadow: none;
-            font-size: 11px;
-            font-weight: 900; 
+            font-size: 12px;      /* Slightly larger for readability without bold */
+            font-weight: normal;  /* Changed from 900 to normal */
             color: #d35400;   
-            /* Text shadow for readability */
+            /* Text shadow for readability against buildings */
             text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; 
         }
     </style>
@@ -154,23 +154,20 @@
                 var num = feature.properties.numurs || feature.properties.housenumber; 
                 if (!num) return null;
 
-                // Create the Orange Dot
+                // Create an INVISIBLE anchor point (radius 0)
                 var marker = L.circleMarker(latlng, {
-                    radius: 3,              // Small dot
-                    fillColor: "#ff8c00",   // Dark Orange
-                    color: "#fff",          // White border
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 1,
+                    radius: 0,              // Invisible size
+                    opacity: 0,             // Invisible stroke
+                    fillOpacity: 0,         // Invisible fill
                     pane: 'labels'
                 });
 
-                // Attach Text Label
+                // Attach Text Label directly to center
                 marker.bindTooltip(num, {
                     permanent: true,
-                    direction: 'right',
+                    direction: 'center',    // Center text exactly on coordinates
                     className: 'house-num-tooltip',
-                    offset: [4, 0]
+                    offset: [0, 0]          // No offset needed
                 });
                 
                 return marker;
