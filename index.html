@@ -1,25 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Riga Density Map - DEBUG MODE</title>
+    <title>Riga Density Map</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
-    <script>
-        window.onerror = function(message, source, lineno, colno, error) {
-            var errorBox = document.getElementById('error-box');
-            if (!errorBox) {
-                errorBox = document.createElement('div');
-                errorBox.id = 'error-box';
-                errorBox.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#ffebee;color:#c62828;padding:20px;z-index:9999;font-family:monospace;border-bottom:2px solid red;';
-                document.body.prepend(errorBox);
-            }
-            errorBox.innerHTML += '<strong>ERROR:</strong> ' + message + '<br>' +
-                                  '<strong>LINE:</strong> ' + lineno + '<br>' +
-                                  '<strong>FILE:</strong> ' + source + '<br><hr>';
-        };
-    </script>
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -27,8 +12,19 @@
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; width: 100%; }
         
-        .info { padding: 12px; background: rgba(255,255,255,0.96); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 8px; font-size: 13px; width: 260px; max-height: 80vh; overflow-y: auto;}
+        /* Info Box Styles */
+        .info { 
+            padding: 12px; 
+            background: rgba(255,255,255,0.96); 
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+            border-radius: 8px; 
+            font-size: 13px;
+            width: 260px; 
+            max-height: 80vh; 
+            overflow-y: auto;
+        }
         .info h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
+        
         .info-total { text-align: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #ccc; font-weight: bold; color: #333;}
         .info-row { display: flex; align-items: flex-end; margin-bottom: 4px; }
         .label { white-space: nowrap; color: #555; }
@@ -41,9 +37,16 @@
         .back-btn { display: none; background: #e74c3c; } 
         .locate-btn { background: #3498db; } 
 
+        /* UPDATED HOUSE NUMBERS STYLE */
+        /* Transparent tooltip background so it looks like text floating next to the dot */
         .house-num-tooltip {
-            background: transparent; border: none; box-shadow: none;
-            font-size: 11px; font-weight: 900; color: #d35400;   
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            font-size: 11px;
+            font-weight: 900; 
+            color: #d35400;   
+            /* Text shadow for readability */
             text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; 
         }
     </style>
@@ -58,32 +61,31 @@
 </div>
 
 <script src="neighborhood_data.js"></script>
-<script>
-    if (typeof rigaData === 'undefined') {
-        throw new Error("Critical: 'neighborhood_data.js' did not load. Check if the file exists in your GitHub repo.");
-    }
-</script>
 
 <script>
-    // 3. MAIN APP LOGIC
+    // 1. Initialize Map
     var map = L.map('map').setView([56.9496, 24.1052], 11);
 
+    // Create a dedicated pane for labels so they are ALWAYS on top
     map.createPane('labels');
     map.getPane('labels').style.zIndex = 650; 
     map.getPane('labels').style.pointerEvents = 'none';
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; CARTO',
+        subdomains: 'abcd',
         maxZoom: 19
     }).addTo(map);
 
+    // --- VARIABLES ---
     var neighborhoodLayer;
     var buildingsLayer = null;
     var houseNumbersLayer = null; 
     var userMarker = null;
     var currentActiveBuilding = null;
-    var currentSafeId = null;
+    var currentSafeId = null; // Tracks which neighborhood is currently active
 
+    // --- GEOLOCATION ---
     function locateUser() { map.locate({setView: true, maxZoom: 16}); }
     function onLocationFound(e) {
         var radius = e.accuracy / 2;
@@ -93,120 +95,166 @@
     }
     map.on('locationfound', onLocationFound);
 
+    // --- LAZY LOAD DATA ---
+    // This function is triggered when you CLICK a neighborhood
     function loadNeighborhoodData(safeName) {
         currentSafeId = safeName;
-        // Fix for variable names with spaces/dashes (Sanitize to match Python output)
-        // e.g. "Ziepniekkalns" -> "Ziepniekkalns", but "Name With Space" -> "Name_With_Space"
-        var safeVarName = safeName.replace(/[ -]/g, "_");
-
-        var buildVar = "buildings_" + safeVarName;
+        
+        // 1. Load Buildings (Existing logic)
+        var buildVar = "buildings_" + safeName;
         if (window[buildVar]) {
             drawBuildings(window[buildVar]);
         } else {
-            loadScript('building_chunks/buildings_' + safeVarName + '.js', function() {
+            loadScript('building_chunks/buildings_' + safeName + '.js', function() {
                 if (window[buildVar]) drawBuildings(window[buildVar]);
             });
         }
 
-        var numVar = "housenumbers_" + safeVarName;
+        // 2. Load House Numbers (New logic)
+        // We load the JS file, but we only DRAW it if the zoom is high enough
+        var numVar = "housenumbers_" + safeName;
         if (!window[numVar]) {
-            loadScript('housenumbers_chunks/housenumbers_' + safeVarName + '.js', function() {
-                console.log("Loaded house numbers for " + safeVarName);
-                checkZoomAndDisplay(); 
+            loadScript('housenumbers_chunks/housenumbers_' + safeName + '.js', function() {
+                console.log("Loaded house numbers for " + safeName);
+                checkZoomAndDisplay(); // Re-check zoom once data arrives
             });
         } else {
             checkZoomAndDisplay();
         }
     }
 
+    // Generic helper to load JS files
     function loadScript(url, callback) {
         var script = document.createElement('script');
         script.src = url;
         script.onload = callback;
-        script.onerror = function() { console.error("Could not load script: " + url); };
+        script.onerror = function() { console.log("Data chunk not found for: " + url); };
         document.head.appendChild(script);
     }
 
+    // --- DRAW HOUSE NUMBERS ---
     function drawHouseNumbers() {
         if (!currentSafeId) return;
-        var safeVarName = currentSafeId.replace(/[ -]/g, "_");
-        var data = window["housenumbers_" + safeVarName];
+
+        // Get the data variable (e.g. housenumbers_Imanta)
+        var data = window["housenumbers_" + currentSafeId];
         
+        // If data isn't loaded yet, do nothing (loadScript callback will handle it later)
         if (!data) return;
+
+        // If layer is already on map, don't redraw
         if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) return;
+
+        // Clean up previous layer
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
 
         houseNumbersLayer = L.geoJson(data, {
             pointToLayer: function (feature, latlng) {
+                // Check for 'numurs' (or 'housenumber' as fallback)
                 var num = feature.properties.numurs || feature.properties.housenumber; 
                 if (!num) return null;
 
+                // Create the Orange Dot
                 var marker = L.circleMarker(latlng, {
-                    radius: 3, fillColor: "#ff8c00", color: "#fff",
-                    weight: 1, opacity: 1, fillOpacity: 1, pane: 'labels'
+                    radius: 3,              // Small dot
+                    fillColor: "#ff8c00",   // Dark Orange
+                    color: "#fff",          // White border
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 1,
+                    pane: 'labels'
                 });
 
+                // Attach Text Label
                 marker.bindTooltip(num, {
-                    permanent: true, direction: 'right',
-                    className: 'house-num-tooltip', offset: [4, 0]
+                    permanent: true,
+                    direction: 'right',
+                    className: 'house-num-tooltip',
+                    offset: [4, 0]
                 });
+                
                 return marker;
             }
         });
+        
         map.addLayer(houseNumbersLayer);
     }
 
+    // --- ZOOM LOGIC ---
     function checkZoomAndDisplay() {
         var z = map.getZoom();
+        
+        // Requirement: Zoom 1-13 = HIDDEN. Zoom 14+ = VISIBLE.
+        // We also need a neighborhood to be selected (currentSafeId).
         if (z >= 14 && currentSafeId) {
             drawHouseNumbers();
         } else {
             if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
-            houseNumbersLayer = null; 
+            houseNumbersLayer = null; // Reset variable
         }
     }
+
     map.on('zoomend', checkZoomAndDisplay);
 
+
+    // --- STYLING & INTERACTIONS (Standard) ---
     function getColor(d) {
         return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
                d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
                d > 0     ? '#FED976' : '#FFEDA0';
     }
+
     function style(feature) {
         return { fillColor: getColor(feature.properties.Total_Units), weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7 };
     }
+
     function buildingStyle(feature) {
         return { fillColor: '#2c3e50', weight: 1, opacity: 1, color: '#555', fillOpacity: 0.9 };
     }
+
     function highlightNeighborhood(e) {
         var layer = e.target;
         layer.setStyle({ weight: 4, color: '#666', dashArray: '', fillOpacity: 0.7 });
         info.update(layer.feature.properties, "neighborhood");
     }
+
     function resetNeighborhood(e) {
         neighborhoodLayer.resetStyle(e.target);
         if (document.getElementById('backButton').style.display === 'none') info.update(); 
     }
+
     function onNeighborhoodClick(e) {
         var layer = e.target;
         var props = layer.feature.properties;
         var safeName = props.safe_id; 
+        
         if (!safeName) return;
+
         map.fitBounds(layer.getBounds());
+        
         if(neighborhoodLayer) map.removeLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'block';
         info.update(props, "neighborhood");
+        
+        // TRIGGER LOADING
         loadNeighborhoodData(safeName);
     }
+
     function onEachNeighborhood(feature, layer) {
         layer.on({ mouseover: highlightNeighborhood, mouseout: resetNeighborhood, click: onNeighborhoodClick });
     }
+
     function drawBuildings(geojsonData) {
         if (buildingsLayer) map.removeLayer(buildingsLayer);
         currentActiveBuilding = null; 
         buildingsLayer = L.geoJson(geojsonData, { style: buildingStyle, onEachFeature: onBuildingFeature }).addTo(map);
-        if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) houseNumbersLayer.bringToFront();
+        
+        // Ensure numbers stay on top if they are already drawn
+        if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) {
+            houseNumbersLayer.bringToFront();
+        }
     }
+
     function onBuildingFeature(feature, layer) {
         layer.on({
             click: function(e) {
@@ -221,6 +269,7 @@
             }
         });
     }
+
     function resetMap() {
         map.setView([56.9496, 24.1052], 11);
         if (buildingsLayer) map.removeLayer(buildingsLayer);
@@ -239,8 +288,27 @@
         if (!props) { this._div.innerHTML = '<h4>Riga Data</h4>Click a neighborhood'; return; }
         var title = (type === "neighborhood") ? props.apkaime : (props.Full_Address || props.Building_Cadastre_Nr);
         var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
-        this._div.innerHTML = '<h4>' + title + '</h4>Total: ' + total;
+        var html = '<h4>' + title + '</h4><div class="info-total">Total Units: ' + total + '</div>';
+        function row(label, val) { 
+            var v = val ? Math.round(val) : 0;
+            var pct = (total > 0) ? Math.round((v / total) * 100) : 0;
+            return '<div class="info-row"><span class="label">' + label + '</span><span class="dots"></span><span class="value"><b>' + v + '</b> <span class="pct">(' + pct + '%)</span></span></div>';
+        }
+        html += row('0 - 25 m²', props['[0-25]']);
+        html += row('25 - 50 m²', props['[25-50]']);
+        html += row('50 - 75 m²', props['[50-75]']);
+        html += row('75 - 100 m²', props['[75-100]']);
+        html += row('100 - 125 m²', props['[100-125]']);
+        html += row('125 - 150 m²', props['[125-150]']);
+        html += row('150 - 175 m²', props['[150-175]']);
+        html += row('175 - 200 m²', props['[175-200]']);
+        html += row('200+ m²', props['[200+]']);
+        this._div.innerHTML = html;
     };
     info.addTo(map);
 
-    neighborhoodLayer = L.geoJson(rigaData, { style: style, onEach
+    neighborhoodLayer = L.geoJson(rigaData, { style: style, onEachFeature: onEachNeighborhood }).addTo(map);
+
+</script>
+</body>
+</html>
