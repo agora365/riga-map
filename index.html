@@ -12,19 +12,52 @@
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; width: 100%; }
         
-        /* Info Box Styles */
+        /* --- UI COMPONENT: SPINNER --- */
+        #loader {
+            display: none; /* Hidden by default */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 5px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        /* --- UI COMPONENT: INFO BOX --- */
         .info { 
             padding: 12px; 
             background: rgba(255,255,255,0.96); 
             box-shadow: 0 0 15px rgba(0,0,0,0.2); 
             border-radius: 8px; 
             font-size: 13px;
-            width: 260px; 
             max-height: 80vh; 
             overflow-y: auto;
+            /* DEFAULT (Desktop) POSITIONING */
+            width: 260px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
         }
-        .info h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
         
+        /* MOBILE OVERRIDE for Info Box */
+        @media (max-width: 600px) {
+            .info {
+                width: auto;
+                left: 10px;
+                right: 10px;
+                top: auto;
+                bottom: 20px; /* Sits at the bottom on mobile */
+                max-height: 40vh;
+            }
+        }
+
+        .info h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
         .info-total { text-align: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #ccc; font-weight: bold; color: #333;}
         .info-row { display: flex; align-items: flex-end; margin-bottom: 4px; }
         .label { white-space: nowrap; color: #555; }
@@ -32,21 +65,40 @@
         .value { white-space: nowrap; }
         .pct { font-size: 0.9em; color: #7f8c8d; font-weight: normal; margin-left: 3px; }
         
-        .btn-wrapper { position: absolute; top: 10px; left: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        /* --- UI COMPONENT: BUTTONS --- */
+        /* Moved to Bottom Right as requested */
+        .btn-wrapper { 
+            position: absolute; 
+            bottom: 30px; 
+            right: 10px; 
+            z-index: 1000; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            align-items: flex-end; /* Align right */
+        }
+        
+        /* Adjust for mobile to avoid covering Leaflet attribution or bottom info box */
+        @media (max-width: 600px) {
+            .btn-wrapper {
+                bottom: auto;
+                top: 70px; /* Below zoom controls on mobile */
+                right: 10px;
+            }
+        }
+
         .map-btn { padding: 10px 15px; background: #2c3e50; color: white; cursor: pointer; border-radius: 50px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-align: center; font-size: 14px;}
         .back-btn { display: none; background: #e74c3c; } 
         .locate-btn { background: #3498db; } 
 
-        /* UPDATED HOUSE NUMBERS STYLE */
-        /* Transparent tooltip background so it looks like text floating in space */
+        /* HOUSE NUMBERS STYLE */
         .house-num-tooltip {
             background: transparent;
             border: none;
             box-shadow: none;
-            font-size: 12px;      /* Slightly larger for readability without bold */
-            font-weight: normal;  /* Changed from 900 to normal */
+            font-size: 12px;
+            font-weight: normal;
             color: #d35400;   
-            /* Text shadow for readability against buildings */
             text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; 
         }
     </style>
@@ -54,6 +106,7 @@
 <body>
 
 <div id="map"></div>
+<div id="loader">Processing Area...</div>
 
 <div class="btn-wrapper">
     <div id="backButton" class="map-btn back-btn" onclick="resetMap()">⬅ Back</div>
@@ -66,7 +119,6 @@
     // 1. Initialize Map
     var map = L.map('map').setView([56.9496, 24.1052], 11);
 
-    // Create a dedicated pane for labels so they are ALWAYS on top
     map.createPane('labels');
     map.getPane('labels').style.zIndex = 650; 
     map.getPane('labels').style.pointerEvents = 'none';
@@ -83,7 +135,7 @@
     var houseNumbersLayer = null; 
     var userMarker = null;
     var currentActiveBuilding = null;
-    var currentSafeId = null; // Tracks which neighborhood is currently active
+    var currentSafeId = null;
 
     // --- GEOLOCATION ---
     function locateUser() { map.locate({setView: true, maxZoom: 16}); }
@@ -95,106 +147,93 @@
     }
     map.on('locationfound', onLocationFound);
 
-    // --- LAZY LOAD DATA ---
-    // This function is triggered when you CLICK a neighborhood
+    // --- LAZY LOAD DATA WITH SPINNER ---
     function loadNeighborhoodData(safeName) {
         currentSafeId = safeName;
         
-        // 1. Load Buildings (Existing logic)
+        // Show Loader
+        document.getElementById('loader').style.display = 'block';
+
+        // 1. Load Buildings
         var buildVar = "buildings_" + safeName;
+        
+        // Helper to hide loader when done
+        function checkDone() {
+             if (window[buildVar]) {
+                 document.getElementById('loader').style.display = 'none';
+             }
+        }
+
         if (window[buildVar]) {
             drawBuildings(window[buildVar]);
+            checkDone();
         } else {
             loadScript('building_chunks/buildings_' + safeName + '.js', function() {
                 if (window[buildVar]) drawBuildings(window[buildVar]);
+                checkDone();
             });
         }
 
-        // 2. Load House Numbers (New logic)
-        // We load the JS file, but we only DRAW it if the zoom is high enough
+        // 2. Load House Numbers (Silent background load)
         var numVar = "housenumbers_" + safeName;
         if (!window[numVar]) {
             loadScript('housenumbers_chunks/housenumbers_' + safeName + '.js', function() {
                 console.log("Loaded house numbers for " + safeName);
-                checkZoomAndDisplay(); // Re-check zoom once data arrives
+                checkZoomAndDisplay();
             });
         } else {
             checkZoomAndDisplay();
         }
     }
 
-    // Generic helper to load JS files
     function loadScript(url, callback) {
         var script = document.createElement('script');
         script.src = url;
         script.onload = callback;
-        script.onerror = function() { console.log("Data chunk not found for: " + url); };
+        script.onerror = function() { 
+            console.log("Data chunk not found for: " + url); 
+            document.getElementById('loader').style.display = 'none'; // Hide loader on error
+        };
         document.head.appendChild(script);
     }
 
     // --- DRAW HOUSE NUMBERS ---
     function drawHouseNumbers() {
         if (!currentSafeId) return;
-
-        // Get the data variable (e.g. housenumbers_Imanta)
         var data = window["housenumbers_" + currentSafeId];
-        
-        // If data isn't loaded yet, do nothing (loadScript callback will handle it later)
         if (!data) return;
-
-        // If layer is already on map, don't redraw
         if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) return;
-
-        // Clean up previous layer
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
 
         houseNumbersLayer = L.geoJson(data, {
             pointToLayer: function (feature, latlng) {
-                // Check for 'numurs' (or 'housenumber' as fallback)
                 var num = feature.properties.numurs || feature.properties.housenumber; 
                 if (!num) return null;
-
-                // Create an INVISIBLE anchor point (radius 0)
                 var marker = L.circleMarker(latlng, {
-                    radius: 0,              // Invisible size
-                    opacity: 0,             // Invisible stroke
-                    fillOpacity: 0,         // Invisible fill
-                    pane: 'labels'
+                    radius: 0, opacity: 0, fillOpacity: 0, pane: 'labels'
                 });
-
-                // Attach Text Label directly to center
                 marker.bindTooltip(num, {
-                    permanent: true,
-                    direction: 'center',    // Center text exactly on coordinates
-                    className: 'house-num-tooltip',
-                    offset: [0, 0]          // No offset needed
+                    permanent: true, direction: 'center', className: 'house-num-tooltip', offset: [0, 0]
                 });
-                
                 return marker;
             }
         });
-        
         map.addLayer(houseNumbersLayer);
     }
 
     // --- ZOOM LOGIC ---
     function checkZoomAndDisplay() {
         var z = map.getZoom();
-        
-        // Requirement: Zoom 1-13 = HIDDEN. Zoom 14+ = VISIBLE.
-        // We also need a neighborhood to be selected (currentSafeId).
         if (z >= 14 && currentSafeId) {
             drawHouseNumbers();
         } else {
             if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
-            houseNumbersLayer = null; // Reset variable
+            houseNumbersLayer = null;
         }
     }
-
     map.on('zoomend', checkZoomAndDisplay);
 
-
-    // --- STYLING & INTERACTIONS (Standard) ---
+    // --- STYLING & INTERACTIONS ---
     function getColor(d) {
         return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
                d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
@@ -233,7 +272,6 @@
         document.getElementById('backButton').style.display = 'block';
         info.update(props, "neighborhood");
         
-        // TRIGGER LOADING
         loadNeighborhoodData(safeName);
     }
 
@@ -245,8 +283,6 @@
         if (buildingsLayer) map.removeLayer(buildingsLayer);
         currentActiveBuilding = null; 
         buildingsLayer = L.geoJson(geojsonData, { style: buildingStyle, onEachFeature: onBuildingFeature }).addTo(map);
-        
-        // Ensure numbers stay on top if they are already drawn
         if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) {
             houseNumbersLayer.bringToFront();
         }
@@ -279,8 +315,18 @@
         houseNumbersLayer = null;
     }
 
-    var info = L.control();
-    info.onAdd = function (map) { this._div = L.DomUtil.create('div', 'info'); this.update(); return this._div; };
+    // --- INFO BOX CONTROL ---
+    // Modified to use CSS classes instead of inline styles for positioning
+    var info = L.control({ position: 'topright' }); // Leaflet default, but overridden by CSS
+
+    info.onAdd = function (map) { 
+        this._div = L.DomUtil.create('div', 'info'); 
+        // Stop clicks on the info box from dragging the map
+        L.DomEvent.disableClickPropagation(this._div);
+        this.update(); 
+        return this._div; 
+    };
+    
     info.update = function (props, type) {
         if (!props) { this._div.innerHTML = '<h4>Riga Data</h4>Click a neighborhood'; return; }
         var title = (type === "neighborhood") ? props.apkaime : (props.Full_Address || props.Building_Cadastre_Nr);
@@ -291,6 +337,11 @@
             var pct = (total > 0) ? Math.round((v / total) * 100) : 0;
             return '<div class="info-row"><span class="label">' + label + '</span><span class="dots"></span><span class="value"><b>' + v + '</b> <span class="pct">(' + pct + '%)</span></span></div>';
         }
+        
+        // Dynamic content based on feature type
+        // Currently only "Stock" data logic is here. 
+        // Later we will add 'if type == energy' branches here.
+        
         html += row('0 - 25 m²', props['[0-25]']);
         html += row('25 - 50 m²', props['[25-50]']);
         html += row('50 - 75 m²', props['[50-75]']);
@@ -302,6 +353,8 @@
         html += row('200+ m²', props['[200+]']);
         this._div.innerHTML = html;
     };
+    
+    // We add it to 'topright' but CSS moves it on mobile
     info.addTo(map);
 
     neighborhoodLayer = L.geoJson(rigaData, { style: style, onEachFeature: onEachNeighborhood }).addTo(map);
