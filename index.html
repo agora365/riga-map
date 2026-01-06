@@ -28,10 +28,10 @@
             pointer-events: none;
         }
 
-        /* --- UI COMPONENT: INFO BOX (Now detached from Map) --- */
+        /* --- UI COMPONENT: INFO BOX --- */
         #info-panel { 
             position: absolute;
-            z-index: 1000; /* Above the map */
+            z-index: 1000; 
             padding: 12px; 
             background: rgba(255,255,255,0.96); 
             box-shadow: 0 0 15px rgba(0,0,0,0.2); 
@@ -39,7 +39,7 @@
             font-size: 13px;
             max-height: 80vh; 
             overflow-y: auto;
-            display: none; /* Hidden by default until populated */
+            display: none; 
         }
         
         /* DESKTOP POSITION: Top Right */
@@ -48,7 +48,7 @@
                 top: 10px;
                 right: 10px;
                 width: 260px;
-                display: block; /* Always show "Riga Data" on desktop */
+                display: block; 
             }
         }
 
@@ -59,7 +59,7 @@
                 right: 10px;
                 bottom: 20px;
                 width: auto;
-                max-height: 40vh; /* Don't cover too much vertical space */
+                max-height: 40vh; 
             }
         }
 
@@ -79,18 +79,22 @@
             flex-direction: column; 
             gap: 10px; 
             align-items: flex-end; 
-            
-            /* POSITION: Bottom Right (Always) */
-            bottom: 30px; 
-            right: 10px; 
+            right: 10px; /* Always on the right */
+        }
+
+        /* DESKTOP: Keep Bottom Right (to avoid hitting the Info Panel at top) */
+        @media (min-width: 601px) {
+            .btn-wrapper {
+                bottom: 30px; 
+                top: auto;
+            }
         }
         
-        /* On Mobile: Move buttons up slightly if the info panel is open? 
-           For now, let's keep them bottom-right. If they overlap the panel,
-           we can add a 'margin-bottom' via JS later. */
+        /* MOBILE: Move to Top Right (to clear the data panel at bottom) */
         @media (max-width: 600px) {
             .btn-wrapper {
-                bottom: 180px; /* Push buttons UP so they don't hide behind the bottom sheet panel */
+                bottom: auto;
+                top: 10px; 
             }
         }
 
@@ -129,7 +133,6 @@
 
 <script>
     // 1. Initialize Map
-    // Zoom control defaults to top-left, which is perfect now that other UI is elsewhere
     var map = L.map('map').setView([56.9496, 24.1052], 11);
 
     map.createPane('labels');
@@ -316,19 +319,16 @@
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
         if (neighborhoodLayer) map.addLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'none';
-        updateInfo(); // Reset to default
+        updateInfo(); 
         currentSafeId = null;
         currentActiveBuilding = null;
         houseNumbersLayer = null;
     }
 
-    // --- INFO PANEL LOGIC (Pure JS, no Leaflet Control) ---
+    // --- INFO PANEL LOGIC ---
     function updateInfo(props, type) {
         var div = document.getElementById('info-panel');
         
-        // Mobile Logic: If no props (reset), should we hide the panel entirely?
-        // Let's keep it consistent: Hide on mobile if reset, Show if active
-        // On desktop: Always block
         if (window.innerWidth <= 600) {
             div.style.display = props ? 'block' : 'none';
         } else {
@@ -366,7 +366,6 @@
 
     neighborhoodLayer = L.geoJson(rigaData, { style: style, onEachFeature: onEachNeighborhood }).addTo(map);
     
-    // Initial call to set default text
     updateInfo();
 
 </script>
