@@ -9,12 +9,12 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-        #map { height: 100vh; width: 100%; }
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
         
         /* --- UI COMPONENT: SPINNER --- */
         #loader {
-            display: none; /* Hidden by default */
+            display: none;
             position: absolute;
             top: 50%;
             left: 50%;
@@ -28,8 +28,10 @@
             pointer-events: none;
         }
 
-        /* --- UI COMPONENT: INFO BOX --- */
-        .info { 
+        /* --- UI COMPONENT: INFO BOX (Now detached from Map) --- */
+        #info-panel { 
+            position: absolute;
+            z-index: 1000; /* Above the map */
             padding: 12px; 
             background: rgba(255,255,255,0.96); 
             box-shadow: 0 0 15px rgba(0,0,0,0.2); 
@@ -37,27 +39,31 @@
             font-size: 13px;
             max-height: 80vh; 
             overflow-y: auto;
-            /* DEFAULT (Desktop) POSITIONING */
-            width: 260px;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
+            display: none; /* Hidden by default until populated */
         }
         
-        /* MOBILE OVERRIDE for Info Box */
-        @media (max-width: 600px) {
-            .info {
-                width: auto;
-                left: 10px;
+        /* DESKTOP POSITION: Top Right */
+        @media (min-width: 601px) {
+            #info-panel {
+                top: 10px;
                 right: 10px;
-                top: auto;
-                bottom: 20px; /* Sits at the bottom on mobile */
-                max-height: 40vh;
+                width: 260px;
+                display: block; /* Always show "Riga Data" on desktop */
             }
         }
 
-        .info h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
+        /* MOBILE POSITION: Bottom Center */
+        @media (max-width: 600px) {
+            #info-panel {
+                left: 10px;
+                right: 10px;
+                bottom: 20px;
+                width: auto;
+                max-height: 40vh; /* Don't cover too much vertical space */
+            }
+        }
+
+        #info-panel h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
         .info-total { text-align: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #ccc; font-weight: bold; color: #333;}
         .info-row { display: flex; align-items: flex-end; margin-bottom: 4px; }
         .label { white-space: nowrap; color: #555; }
@@ -66,24 +72,25 @@
         .pct { font-size: 0.9em; color: #7f8c8d; font-weight: normal; margin-left: 3px; }
         
         /* --- UI COMPONENT: BUTTONS --- */
-        /* Moved to Bottom Right as requested */
         .btn-wrapper { 
             position: absolute; 
-            bottom: 30px; 
-            right: 10px; 
             z-index: 1000; 
             display: flex; 
             flex-direction: column; 
             gap: 10px; 
-            align-items: flex-end; /* Align right */
+            align-items: flex-end; 
+            
+            /* POSITION: Bottom Right (Always) */
+            bottom: 30px; 
+            right: 10px; 
         }
         
-        /* Adjust for mobile to avoid covering Leaflet attribution or bottom info box */
+        /* On Mobile: Move buttons up slightly if the info panel is open? 
+           For now, let's keep them bottom-right. If they overlap the panel,
+           we can add a 'margin-bottom' via JS later. */
         @media (max-width: 600px) {
             .btn-wrapper {
-                bottom: auto;
-                top: 70px; /* Below zoom controls on mobile */
-                right: 10px;
+                bottom: 180px; /* Push buttons UP so they don't hide behind the bottom sheet panel */
             }
         }
 
@@ -108,6 +115,11 @@
 <div id="map"></div>
 <div id="loader">Processing Area...</div>
 
+<div id="info-panel">
+    <h4>Riga Data</h4>
+    <div style="text-align:center; color:#777;">Click a neighborhood</div>
+</div>
+
 <div class="btn-wrapper">
     <div id="backButton" class="map-btn back-btn" onclick="resetMap()">⬅ Back</div>
     <div class="map-btn locate-btn" onclick="locateUser()">📍 Find Me</div>
@@ -117,6 +129,7 @@
 
 <script>
     // 1. Initialize Map
+    // Zoom control defaults to top-left, which is perfect now that other UI is elsewhere
     var map = L.map('map').setView([56.9496, 24.1052], 11);
 
     map.createPane('labels');
@@ -147,17 +160,13 @@
     }
     map.on('locationfound', onLocationFound);
 
-    // --- LAZY LOAD DATA WITH SPINNER ---
+    // --- LAZY LOAD DATA ---
     function loadNeighborhoodData(safeName) {
         currentSafeId = safeName;
-        
-        // Show Loader
         document.getElementById('loader').style.display = 'block';
 
-        // 1. Load Buildings
         var buildVar = "buildings_" + safeName;
         
-        // Helper to hide loader when done
         function checkDone() {
              if (window[buildVar]) {
                  document.getElementById('loader').style.display = 'none';
@@ -174,7 +183,6 @@
             });
         }
 
-        // 2. Load House Numbers (Silent background load)
         var numVar = "housenumbers_" + safeName;
         if (!window[numVar]) {
             loadScript('housenumbers_chunks/housenumbers_' + safeName + '.js', function() {
@@ -192,7 +200,7 @@
         script.onload = callback;
         script.onerror = function() { 
             console.log("Data chunk not found for: " + url); 
-            document.getElementById('loader').style.display = 'none'; // Hide loader on error
+            document.getElementById('loader').style.display = 'none'; 
         };
         document.head.appendChild(script);
     }
@@ -221,7 +229,6 @@
         map.addLayer(houseNumbersLayer);
     }
 
-    // --- ZOOM LOGIC ---
     function checkZoomAndDisplay() {
         var z = map.getZoom();
         if (z >= 14 && currentSafeId) {
@@ -233,7 +240,7 @@
     }
     map.on('zoomend', checkZoomAndDisplay);
 
-    // --- STYLING & INTERACTIONS ---
+    // --- STYLING ---
     function getColor(d) {
         return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
                d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
@@ -251,12 +258,12 @@
     function highlightNeighborhood(e) {
         var layer = e.target;
         layer.setStyle({ weight: 4, color: '#666', dashArray: '', fillOpacity: 0.7 });
-        info.update(layer.feature.properties, "neighborhood");
+        updateInfo(layer.feature.properties, "neighborhood");
     }
 
     function resetNeighborhood(e) {
         neighborhoodLayer.resetStyle(e.target);
-        if (document.getElementById('backButton').style.display === 'none') info.update(); 
+        if (document.getElementById('backButton').style.display === 'none') updateInfo(); 
     }
 
     function onNeighborhoodClick(e) {
@@ -270,7 +277,7 @@
         
         if(neighborhoodLayer) map.removeLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'block';
-        info.update(props, "neighborhood");
+        updateInfo(props, "neighborhood");
         
         loadNeighborhoodData(safeName);
     }
@@ -298,7 +305,7 @@
                 clickedLayer.setStyle({ color: '#ff0000', weight: 3, fillOpacity: 0.8 });
                 clickedLayer.bringToFront();
                 currentActiveBuilding = clickedLayer;
-                info.update(clickedLayer.feature.properties, "building");
+                updateInfo(clickedLayer.feature.properties, "building");
             }
         });
     }
@@ -309,38 +316,40 @@
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
         if (neighborhoodLayer) map.addLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'none';
-        info.update();
+        updateInfo(); // Reset to default
         currentSafeId = null;
         currentActiveBuilding = null;
         houseNumbersLayer = null;
     }
 
-    // --- INFO BOX CONTROL ---
-    // Modified to use CSS classes instead of inline styles for positioning
-    var info = L.control({ position: 'topright' }); // Leaflet default, but overridden by CSS
+    // --- INFO PANEL LOGIC (Pure JS, no Leaflet Control) ---
+    function updateInfo(props, type) {
+        var div = document.getElementById('info-panel');
+        
+        // Mobile Logic: If no props (reset), should we hide the panel entirely?
+        // Let's keep it consistent: Hide on mobile if reset, Show if active
+        // On desktop: Always block
+        if (window.innerWidth <= 600) {
+            div.style.display = props ? 'block' : 'none';
+        } else {
+            div.style.display = 'block';
+        }
 
-    info.onAdd = function (map) { 
-        this._div = L.DomUtil.create('div', 'info'); 
-        // Stop clicks on the info box from dragging the map
-        L.DomEvent.disableClickPropagation(this._div);
-        this.update(); 
-        return this._div; 
-    };
-    
-    info.update = function (props, type) {
-        if (!props) { this._div.innerHTML = '<h4>Riga Data</h4>Click a neighborhood'; return; }
+        if (!props) { 
+            div.innerHTML = '<h4>Riga Data</h4><div style="text-align:center; color:#777;">Click a neighborhood</div>'; 
+            return; 
+        }
+
         var title = (type === "neighborhood") ? props.apkaime : (props.Full_Address || props.Building_Cadastre_Nr);
         var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
+        
         var html = '<h4>' + title + '</h4><div class="info-total">Total Units: ' + total + '</div>';
+        
         function row(label, val) { 
             var v = val ? Math.round(val) : 0;
             var pct = (total > 0) ? Math.round((v / total) * 100) : 0;
             return '<div class="info-row"><span class="label">' + label + '</span><span class="dots"></span><span class="value"><b>' + v + '</b> <span class="pct">(' + pct + '%)</span></span></div>';
         }
-        
-        // Dynamic content based on feature type
-        // Currently only "Stock" data logic is here. 
-        // Later we will add 'if type == energy' branches here.
         
         html += row('0 - 25 m²', props['[0-25]']);
         html += row('25 - 50 m²', props['[25-50]']);
@@ -351,13 +360,14 @@
         html += row('150 - 175 m²', props['[150-175]']);
         html += row('175 - 200 m²', props['[175-200]']);
         html += row('200+ m²', props['[200+]']);
-        this._div.innerHTML = html;
-    };
-    
-    // We add it to 'topright' but CSS moves it on mobile
-    info.addTo(map);
+        
+        div.innerHTML = html;
+    }
 
     neighborhoodLayer = L.geoJson(rigaData, { style: style, onEachFeature: onEachNeighborhood }).addTo(map);
+    
+    // Initial call to set default text
+    updateInfo();
 
 </script>
 </body>
