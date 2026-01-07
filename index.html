@@ -12,91 +12,39 @@
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
         
-        /* --- UI COMPONENT: SPINNER --- */
+        /* LOADER */
         #loader {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2000;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 5px;
-            font-weight: bold;
-            pointer-events: none;
+            display: none; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); z-index: 2000;
+            background: rgba(0, 0, 0, 0.7); color: white; padding: 15px 25px;
+            border-radius: 5px; font-weight: bold; pointer-events: none;
         }
 
-        /* --- UI COMPONENT: LAYER SWITCHER (New) --- */
+        /* LAYER SWITCHER */
         #layer-control {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: white;
-            border-radius: 50px;
-            padding: 4px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            display: flex;
-            gap: 5px;
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; background: white; border-radius: 50px; padding: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); display: flex; gap: 5px;
         }
-        
         .layer-btn {
-            border: none;
-            background: transparent;
-            padding: 8px 16px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            color: #555;
-            transition: all 0.2s;
+            border: none; background: transparent; padding: 8px 16px; border-radius: 40px;
+            cursor: pointer; font-size: 13px; font-weight: bold; color: #555; transition: all 0.2s;
         }
-        
         .layer-btn:hover { background: #f0f0f0; }
-        
-        /* Active State */
-        .layer-btn.active {
-            background: #2c3e50;
-            color: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+        .layer-btn.active { background: #2c3e50; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
-        /* --- UI COMPONENT: INFO BOX --- */
+        /* INFO PANEL */
         #info-panel { 
-            position: absolute;
-            z-index: 1000; 
-            padding: 12px; 
-            background: rgba(255,255,255,0.96); 
-            box-shadow: 0 0 15px rgba(0,0,0,0.2); 
-            border-radius: 8px; 
-            font-size: 13px;
-            max-height: 80vh; 
-            overflow-y: auto;
+            position: absolute; z-index: 1000; padding: 12px; 
+            background: rgba(255,255,255,0.96); box-shadow: 0 0 15px rgba(0,0,0,0.2); 
+            border-radius: 8px; font-size: 13px; max-height: 80vh; overflow-y: auto;
             display: none; 
         }
-        
-        /* DESKTOP POSITION: Top Right */
         @media (min-width: 601px) {
-            #info-panel {
-                top: 70px; /* Moved down slightly to clear the layer switcher if needed */
-                right: 10px;
-                width: 260px;
-                display: block; 
-            }
+            #info-panel { top: 70px; right: 10px; width: 260px; display: block; }
         }
-
-        /* MOBILE POSITION: Bottom Center */
         @media (max-width: 600px) {
-            #info-panel {
-                left: 10px;
-                right: 10px;
-                bottom: 20px;
-                width: auto;
-                max-height: 40vh; 
-            }
+            #info-panel { left: 10px; right: 10px; bottom: 20px; width: auto; max-height: 40vh; }
         }
 
         #info-panel h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
@@ -104,40 +52,50 @@
         .info-row { display: flex; align-items: flex-end; margin-bottom: 4px; }
         .label { white-space: nowrap; color: #555; }
         .dots { flex-grow: 1; border-bottom: 1px dotted #aaa; margin: 0 5px 4px 5px; opacity: 0.5;}
-        .value { white-space: nowrap; }
+        .value { white-space: nowrap; text-align: right; }
         .pct { font-size: 0.9em; color: #7f8c8d; font-weight: normal; margin-left: 3px; }
         
-        /* --- UI COMPONENT: BUTTONS --- */
-        .btn-wrapper { 
-            position: absolute; 
-            z-index: 1000; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px; 
-            align-items: flex-end; 
-            right: 10px; 
+        /* LEGEND (Energy) */
+        #energy-legend {
+            position: absolute; z-index: 999;
+            background: white; padding: 8px; border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            display: none; /* Hidden by default, shown in Energy mode */
+            flex-direction: column; gap: 4px;
+            font-size: 11px;
         }
-
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .color-box { width: 15px; height: 15px; border-radius: 3px; border: 1px solid #ccc;}
+        
+        /* LEGEND POSITIONING */
+        /* Desktop: Above Back Button (Bottom Right) */
         @media (min-width: 601px) {
-            .btn-wrapper { bottom: 30px; top: auto; }
+            #energy-legend { bottom: 80px; right: 10px; width: 120px; }
+        }
+        /* Mobile: Below Find Me (Top Right) */
+        @media (max-width: 600px) {
+            #energy-legend { top: 130px; right: 10px; width: auto; }
         }
         
-        @media (max-width: 600px) {
-            .btn-wrapper { bottom: auto; top: 10px; }
+        /* BUTTONS */
+        .btn-wrapper { 
+            position: absolute; z-index: 1000; display: flex; 
+            flex-direction: column; gap: 10px; align-items: flex-end; right: 10px; 
         }
+        @media (min-width: 601px) { .btn-wrapper { bottom: 30px; top: auto; } }
+        @media (max-width: 600px) { .btn-wrapper { bottom: auto; top: 10px; } }
 
         .map-btn { padding: 10px 15px; background: #2c3e50; color: white; cursor: pointer; border-radius: 50px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-align: center; font-size: 14px;}
         .back-btn { display: none; background: #e74c3c; } 
-        .locate-btn { background: #3498db; } 
+        .locate-btn { background: #3498db; }
+        .legend-toggle { background: #fff; color: #333; font-size: 12px; padding: 6px 10px; display: none;} 
 
-        /* HOUSE NUMBERS STYLE */
+        /* UPDATED HOUSE NUMBERS STYLE (Dark Grey) */
         .house-num-tooltip {
             background: transparent;
-            border: none;
-            box-shadow: none;
-            font-size: 12px;
-            font-weight: normal;
-            color: #d35400;   
+            border: none; box-shadow: none;
+            font-size: 12px; font-weight: normal;
+            color: #444444; /* Dark Grey as requested */
             text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; 
         }
     </style>
@@ -158,9 +116,22 @@
     <div style="text-align:center; color:#777;">Click a neighborhood</div>
 </div>
 
+<div id="energy-legend">
+    <div style="font-weight:bold; margin-bottom:4px; border-bottom:1px solid #eee;">Efficiency Class</div>
+    <div class="legend-item"><span class="color-box" style="background:#2ecc71"></span> A (High)</div>
+    <div class="legend-item"><span class="color-box" style="background:#a3e059"></span> B</div>
+    <div class="legend-item"><span class="color-box" style="background:#f1c40f"></span> C</div>
+    <div class="legend-item"><span class="color-box" style="background:#f39c12"></span> D</div>
+    <div class="legend-item"><span class="color-box" style="background:#e67e22"></span> E</div>
+    <div class="legend-item"><span class="color-box" style="background:#e74c3c"></span> F (Low)</div>
+    <div class="legend-item"><span class="color-box" style="background:#95a5a6"></span> No Data</div>
+</div>
+
 <div class="btn-wrapper">
-    <div id="backButton" class="map-btn back-btn" onclick="resetMap()">⬅ Back</div>
+    <div id="legendToggle" class="map-btn legend-toggle" onclick="toggleLegend()">📝 Legend</div>
+    
     <div class="map-btn locate-btn" onclick="locateUser()">📍 Find Me</div>
+    <div id="backButton" class="map-btn back-btn" onclick="resetMap()">⬅ Back</div>
 </div>
 
 <script src="neighborhood_data.js"></script>
@@ -186,31 +157,68 @@
     var userMarker = null;
     var currentActiveBuilding = null;
     var currentSafeId = null;
-    
-    // NEW: TRACK CURRENT MODE
-    var currentMode = 'stock'; // 'stock', 'energy', 'transactions'
+    var currentMode = 'stock'; 
 
-    // --- LAYER SWITCHING LOGIC ---
+    // --- COLOR HELPERS ---
+    function getStockColor(d) {
+        return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
+               d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
+               d > 0     ? '#FED976' : '#FFEDA0';
+    }
+
+    function getEnergyColor(cls) {
+        if (!cls) return '#95a5a6'; // Grey for No Data
+        switch(cls.toUpperCase()) {
+            case 'A': return '#2ecc71'; // Green
+            case 'B': return '#a3e059'; // Light Green
+            case 'C': return '#f1c40f'; // Yellow
+            case 'D': return '#f39c12'; // Orange-Yellow
+            case 'E': return '#e67e22'; // Orange
+            case 'F': return '#e74c3c'; // Red
+            default: return '#95a5a6';
+        }
+    }
+
+    // --- LAYER SWITCHING ---
     function setMode(mode, btnElement) {
         currentMode = mode;
-
-        // 1. Update Buttons
-        var btns = document.querySelectorAll('.layer-btn');
-        btns.forEach(function(b) { b.classList.remove('active'); });
+        
+        // Buttons UI
+        document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
         if(btnElement) btnElement.classList.add('active');
 
-        // 2. Refresh Building Styles (if loaded)
-        if (buildingsLayer) {
-            buildingsLayer.setStyle(buildingStyle);
+        // Styles
+        if (buildingsLayer) buildingsLayer.setStyle(buildingStyle);
+        
+        // Legend Visibility
+        var legBtn = document.getElementById('legendToggle');
+        var legBox = document.getElementById('energy-legend');
+        
+        if (mode === 'energy') {
+            legBtn.style.display = 'block';
+            legBox.style.display = 'flex';
+        } else {
+            legBtn.style.display = 'none';
+            legBox.style.display = 'none';
         }
 
-        // 3. Refresh Info Panel (if a building is selected)
+        // Refresh Info
         if (currentActiveBuilding) {
             updateInfo(currentActiveBuilding.feature.properties, "building");
         } else if (currentSafeId) {
-            // If just a neighborhood is selected, we might want to update the summary
-            // For now, we keep the neighborhood summary static
+             // We need to re-fetch the neighborhood properties to show correct totals
+             // We can do this by finding the layer in neighborhoodLayer
+             neighborhoodLayer.eachLayer(function(layer){
+                 if(layer.feature.properties.safe_id === currentSafeId) {
+                     updateInfo(layer.feature.properties, "neighborhood");
+                 }
+             });
         }
+    }
+
+    function toggleLegend() {
+        var leg = document.getElementById('energy-legend');
+        leg.style.display = (leg.style.display === 'none') ? 'flex' : 'none';
     }
 
     // --- GEOLOCATION ---
@@ -223,7 +231,7 @@
     }
     map.on('locationfound', onLocationFound);
 
-    // --- LAZY LOAD DATA ---
+    // --- DATA LOADING ---
     function loadNeighborhoodData(safeName) {
         currentSafeId = safeName;
         document.getElementById('loader').style.display = 'block';
@@ -233,6 +241,13 @@
         function checkDone() {
              if (window[buildVar]) {
                  document.getElementById('loader').style.display = 'none';
+                 // Update Info Panel with Neighborhood Stats (which now might need building data)
+                 // Trigger a refresh of the info panel now that data is loaded
+                 neighborhoodLayer.eachLayer(function(layer){
+                     if(layer.feature.properties.safe_id === safeName) {
+                         updateInfo(layer.feature.properties, "neighborhood");
+                     }
+                 });
              }
         }
 
@@ -261,13 +276,12 @@
         script.src = url;
         script.onload = callback;
         script.onerror = function() { 
-            console.log("Data chunk not found for: " + url); 
+            console.log("Data chunk not found: " + url); 
             document.getElementById('loader').style.display = 'none'; 
         };
         document.head.appendChild(script);
     }
 
-    // --- DRAW HOUSE NUMBERS ---
     function drawHouseNumbers() {
         if (!currentSafeId) return;
         var data = window["housenumbers_" + currentSafeId];
@@ -302,36 +316,20 @@
     }
     map.on('zoomend', checkZoomAndDisplay);
 
-    // --- STYLING ---
-    function getColor(d) {
-        return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
-               d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
-               d > 0     ? '#FED976' : '#FFEDA0';
-    }
-
-    // Neighborhood coloring (always Stock density for now)
+    // --- STYLES ---
     function style(feature) {
-        return { fillColor: getColor(feature.properties.Total_Units), weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7 };
+        // Neighborhoods always colored by Stock Density
+        return { fillColor: getStockColor(feature.properties.Total_Units), weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7 };
     }
 
-    // UPDATED: Building Coloring based on Mode
     function buildingStyle(feature) {
         var props = feature.properties;
-        var color = '#2c3e50'; // Default Dark Blue (Stock)
+        var color = '#2c3e50'; 
 
         if (currentMode === 'energy') {
-             // Placeholder logic until we have data
-             // If we had a property 'Energy_Class', we would color it here
-             if (props.Energy_Class) {
-                 // Example: Green for A, Red for F
-                 color = props.Energy_Class === 'A' ? '#2ecc71' : 
-                         props.Energy_Class === 'F' ? '#e74c3c' : '#f1c40f';
-             } else {
-                 color = '#bdc3c7'; // Grey if no data
-             }
-        } 
-        else if (currentMode === 'transactions') {
-             color = '#9b59b6'; // Purple placeholder for market
+             color = getEnergyColor(props.Energy_Class);
+        } else if (currentMode === 'transactions') {
+             color = '#9b59b6'; 
         }
 
         return { fillColor: color, weight: 1, opacity: 1, color: '#555', fillOpacity: 0.9 };
@@ -342,28 +340,22 @@
         layer.setStyle({ weight: 4, color: '#666', dashArray: '', fillOpacity: 0.7 });
         updateInfo(layer.feature.properties, "neighborhood");
     }
-
     function resetNeighborhood(e) {
         neighborhoodLayer.resetStyle(e.target);
         if (document.getElementById('backButton').style.display === 'none') updateInfo(); 
     }
-
     function onNeighborhoodClick(e) {
         var layer = e.target;
         var props = layer.feature.properties;
         var safeName = props.safe_id; 
-        
         if (!safeName) return;
-
         map.fitBounds(layer.getBounds());
-        
         if(neighborhoodLayer) map.removeLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'block';
-        updateInfo(props, "neighborhood");
         
         loadNeighborhoodData(safeName);
+        // Info update happens inside loadNeighborhoodData success to calculate totals
     }
-
     function onEachNeighborhood(feature, layer) {
         layer.on({ mouseover: highlightNeighborhood, mouseout: resetNeighborhood, click: onNeighborhoodClick });
     }
@@ -371,30 +363,20 @@
     function drawBuildings(geojsonData) {
         if (buildingsLayer) map.removeLayer(buildingsLayer);
         currentActiveBuilding = null; 
-        
-        // Use the function reference 'buildingStyle' so it can be re-called dynamically
-        buildingsLayer = L.geoJson(geojsonData, { 
-            style: buildingStyle, 
-            onEachFeature: onBuildingFeature 
-        }).addTo(map);
-        
-        if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) {
-            houseNumbersLayer.bringToFront();
-        }
+        buildingsLayer = L.geoJson(geojsonData, { style: buildingStyle, onEachFeature: onBuildingFeature }).addTo(map);
+        if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) houseNumbersLayer.bringToFront();
     }
 
     function onBuildingFeature(feature, layer) {
         layer.on({
             click: function(e) {
                 var clickedLayer = e.target;
-                
-                // Highlight logic (Green)
                 if (currentActiveBuilding && currentActiveBuilding !== clickedLayer) {
-                     // Reset previous active building to the CURRENT mode style
                     buildingsLayer.resetStyle(currentActiveBuilding);
                 }
-                
-                clickedLayer.setStyle({ color: '#ff0000', weight: 3, fillOpacity: 0.8 });
+                // Highlight: Red border, but keep fill color based on mode
+                var currentFill = buildingStyle(feature).fillColor;
+                clickedLayer.setStyle({ color: '#ff0000', weight: 3, fillColor: currentFill, fillOpacity: 1 });
                 clickedLayer.bringToFront();
                 currentActiveBuilding = clickedLayer;
                 updateInfo(clickedLayer.feature.properties, "building");
@@ -408,21 +390,22 @@
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
         if (neighborhoodLayer) map.addLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'none';
+        
+        // Hide Legend in Overview
+        document.getElementById('legendToggle').style.display = 'none';
+        document.getElementById('energy-legend').style.display = 'none';
+        
         updateInfo(); 
         currentSafeId = null;
         currentActiveBuilding = null;
         houseNumbersLayer = null;
     }
 
-    // --- INFO PANEL LOGIC (UPDATED FOR MODES) ---
+    // --- INFO PANEL LOGIC ---
     function updateInfo(props, type) {
         var div = document.getElementById('info-panel');
-        
-        if (window.innerWidth <= 600) {
-            div.style.display = props ? 'block' : 'none';
-        } else {
-            div.style.display = 'block';
-        }
+        if (window.innerWidth <= 600) { div.style.display = props ? 'block' : 'none'; } 
+        else { div.style.display = 'block'; }
 
         if (!props) { 
             div.innerHTML = '<h4>Riga Data</h4><div style="text-align:center; color:#777;">Click a neighborhood</div>'; 
@@ -430,23 +413,40 @@
         }
 
         var title = (type === "neighborhood") ? props.apkaime : (props.Full_Address || props.Building_Cadastre_Nr);
-        var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
-        
-        // HEADER
         var html = '<h4>' + title + '</h4>';
-        
-        // NEIGHBORHOOD VIEW (Always shows Stock stats for now)
+
+        // --- NEIGHBORHOOD VIEW ---
         if (type === "neighborhood") {
-             html += '<div class="info-total">Total Units: ' + total + '</div>';
-             html += '<div style="font-size:11px; color:#777;">Zoom in to see buildings</div>';
+             // Calculate Totals using loaded building data if available
+             var totalBld = 0;
+             var totalEnergy = 0;
+             
+             // Check if building data for this neighborhood is loaded in memory
+             var buildVar = "buildings_" + props.safe_id;
+             if (window[buildVar]) {
+                 // Calculate from actual building features
+                 var features = window[buildVar].features;
+                 totalBld = features.length;
+                 totalEnergy = features.filter(f => f.properties.Energy_Class).length;
+                 
+                 html += '<div class="info-row"><span class="label">Total Buildings</span><span class="dots"></span><span class="value"><b>' + totalBld + '</b></span></div>';
+                 html += '<div class="info-row"><span class="label">With Energy Data</span><span class="dots"></span><span class="value"><b>' + totalEnergy + '</b></span></div>';
+                 html += '<div style="font-size:11px; color:#777; margin-top:8px; text-align:center;">Zoom in to see details</div>';
+             } else {
+                 // Fallback if buildings not loaded yet (hover state)
+                 var totalUnits = props.Total_Units ? Math.round(props.Total_Units) : 0;
+                 html += '<div class="info-total">Total Units: ' + totalUnits + '</div>';
+                 html += '<div style="font-size:11px; color:#777;">Click to load detailed data</div>';
+             }
+             
              div.innerHTML = html;
              return;
         }
 
-        // BUILDING VIEW - DYNAMIC CONTENT BASED ON MODE
+        // --- BUILDING VIEW ---
         if (currentMode === 'stock') {
+            var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
             html += '<div class="info-total">Total Units: ' + total + '</div>';
-            
             function row(label, val) { 
                 var v = val ? Math.round(val) : 0;
                 var pct = (total > 0) ? Math.round((v / total) * 100) : 0;
@@ -459,18 +459,23 @@
             html += row('100+ m²', (props['[100-125]']||0) + (props['[125-150]']||0) + (props['[150-175]']||0) + (props['[175-200]']||0) + (props['[200+]']||0));
         
         } else if (currentMode === 'energy') {
-            // ENERGY VIEW
-            // Check if this building HAS energy data
-            if (props.Energy_Class || props.Energy_Consumption) {
-                 html += '<div class="info-total">Energy Class: ' + (props.Energy_Class || 'N/A') + '</div>';
-                 html += '<div class="info-row"><span class="label">Heating (kWh/m²)</span><span class="dots"></span><span class="value"><b>' + (props.Energy_Consumption || '-') + '</b></span></div>';
-                 html += '<div class="info-row"><span class="label">Project</span><span class="dots"></span><span class="value">' + (props.Project_Series || 'Unknown') + '</span></div>';
+            if (props.Energy_Class) {
+                 html += '<div class="info-total">Energy Class: <span style="color:'+getEnergyColor(props.Energy_Class)+'; font-size:1.2em;">' + props.Energy_Class + '</span></div>';
+                 
+                 html += '<div class="info-row"><span class="label">Efficiency (kWh/m²)</span><span class="dots"></span><span class="value"><b>' + (props.Energy_Eff_Heating || '-') + '</b></span></div>';
+                 
+                 html += '<div class="info-row"><span class="label">Total Cons. (MWh)</span><span class="dots"></span><span class="value">' + (props.Energy_Total_Consumption || '-') + '</span></div>';
+                 
+                 html += '<div class="info-row"><span class="label">vs Similar Bldgs</span><span class="dots"></span><span class="value">' + (props.Energy_Comparison || '-') + '</span></div>';
+                 
+                 if(props.Renovation_Info && props.Renovation_Info !== 'No') {
+                     html += '<div class="info-row" style="margin-top:5px; color:#27ae60;"><span class="label">Renovated</span><span class="dots"></span><span class="value">' + props.Renovation_Info + '</span></div>';
+                 }
             } else {
-                 html += '<div style="padding:10px; color:#999; text-align:center;">No Energy Data Available<br>for this building</div>';
+                 html += '<div style="padding:15px; color:#777; text-align:center; font-style:italic;">No Energy Data Available<br>for this building</div>';
             }
             
         } else if (currentMode === 'transactions') {
-            // TRANSACTIONS VIEW (Placeholder)
             html += '<div style="padding:10px; color:#999; text-align:center;">Market Data<br>Coming Soon</div>';
         }
 
