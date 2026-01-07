@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Riga Density Map</title>
+    <title>Riga Apartments Map, beta</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
@@ -20,7 +20,7 @@
             border-radius: 5px; font-weight: bold; pointer-events: none;
         }
 
-        /* LAYER SWITCHER (Top Center) */
+        /* LAYER SWITCHER */
         #layer-control {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             z-index: 1000; background: white; border-radius: 50px; padding: 4px;
@@ -55,7 +55,7 @@
         .value { white-space: nowrap; text-align: right; }
         .pct { font-size: 0.9em; color: #7f8c8d; font-weight: normal; margin-left: 3px; }
         
-        /* MARKET FILTERS (Inside Info Panel) */
+        /* MARKET FILTERS */
         .market-filters { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; padding-bottom:10px; border-bottom:1px solid #eee;}
         .filter-row { display: flex; gap: 3px; justify-content: space-between; }
         .filter-btn {
@@ -147,7 +147,7 @@
     var marketStat = 'median'; // 'min', 'mean', 'median', 'max'
     var marketTime = '5y';     // '1y', '3y', '5y', '10y'
 
-    // --- COLOR LOGIC ---
+    // --- COLOR HELPERS ---
     function getStockColor(d) {
         return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
                d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
@@ -163,8 +163,7 @@
         }
     }
     function getMarketColor(val) {
-        // Purple Gradient for Price/Sqm (Approx range 500 - 3000)
-        if (!val) return '#bdc3c7'; // Grey
+        if (!val) return '#bdc3c7'; 
         return val > 3000 ? '#4a235a' : val > 2500 ? '#5b2c6f' :
                val > 2000 ? '#6c3483' : val > 1500 ? '#8e44ad' :
                val > 1000 ? '#a569bd' : '#d2b4de';
@@ -175,25 +174,18 @@
         currentMode = mode;
         document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
         if(btnElement) btnElement.classList.add('active');
-
         if (buildingsLayer) buildingsLayer.setStyle(buildingStyle);
         
-        // Legend Logic
         var legBtn = document.getElementById('legendToggle');
         var legBox = document.getElementById('energy-legend');
         
-        if (mode === 'energy') {
-            legBtn.style.display = 'block'; legBox.innerHTML = getEnergyLegendHTML();
-        } else if (mode === 'transactions') {
-            legBtn.style.display = 'block'; legBox.innerHTML = getMarketLegendHTML();
-        } else {
-            legBtn.style.display = 'none'; legBox.style.display = 'none';
-        }
+        if (mode === 'energy') { legBtn.style.display = 'block'; legBox.innerHTML = getEnergyLegendHTML(); } 
+        else if (mode === 'transactions') { legBtn.style.display = 'block'; legBox.innerHTML = getMarketLegendHTML(); } 
+        else { legBtn.style.display = 'none'; legBox.style.display = 'none'; }
 
         refreshInfo();
     }
 
-    // --- MARKET FILTER LOGIC ---
     function setMarketFilter(type, val) {
         if (type === 'unit') marketUnit = val;
         if (type === 'stat') marketStat = val;
@@ -215,27 +207,10 @@
         var leg = document.getElementById('energy-legend');
         leg.style.display = (leg.style.display === 'none') ? 'flex' : 'none';
     }
-    
-    function getEnergyLegendHTML() {
-        return `<b>Efficiency Class</b>
-        <div class="legend-item"><span class="color-box" style="background:#2ecc71"></span> A</div>
-        <div class="legend-item"><span class="color-box" style="background:#a3e059"></span> B</div>
-        <div class="legend-item"><span class="color-box" style="background:#f1c40f"></span> C</div>
-        <div class="legend-item"><span class="color-box" style="background:#f39c12"></span> D</div>
-        <div class="legend-item"><span class="color-box" style="background:#e67e22"></span> E</div>
-        <div class="legend-item"><span class="color-box" style="background:#e74c3c"></span> F</div>`;
-    }
-    
-    function getMarketLegendHTML() {
-        return `<b>Price EUR/m²</b>
-        <div class="legend-item"><span class="color-box" style="background:#4a235a"></span> > 3000</div>
-        <div class="legend-item"><span class="color-box" style="background:#6c3483"></span> 2000 - 3000</div>
-        <div class="legend-item"><span class="color-box" style="background:#8e44ad"></span> 1500 - 2000</div>
-        <div class="legend-item"><span class="color-box" style="background:#a569bd"></span> 1000 - 1500</div>
-        <div class="legend-item"><span class="color-box" style="background:#d2b4de"></span> < 1000</div>`;
-    }
+    function getEnergyLegendHTML() { return `<b>Efficiency Class</b><div class="legend-item"><span class="color-box" style="background:#2ecc71"></span> A</div><div class="legend-item"><span class="color-box" style="background:#a3e059"></span> B</div><div class="legend-item"><span class="color-box" style="background:#f1c40f"></span> C</div><div class="legend-item"><span class="color-box" style="background:#f39c12"></span> D</div><div class="legend-item"><span class="color-box" style="background:#e67e22"></span> E</div><div class="legend-item"><span class="color-box" style="background:#e74c3c"></span> F</div>`; }
+    function getMarketLegendHTML() { return `<b>Price EUR/m²</b><div class="legend-item"><span class="color-box" style="background:#4a235a"></span> > 3000</div><div class="legend-item"><span class="color-box" style="background:#6c3483"></span> 2000 - 3000</div><div class="legend-item"><span class="color-box" style="background:#8e44ad"></span> 1500 - 2000</div><div class="legend-item"><span class="color-box" style="background:#a569bd"></span> 1000 - 1500</div><div class="legend-item"><span class="color-box" style="background:#d2b4de"></span> < 1000</div>`; }
 
-    // --- GEO & DATA LOADING (Standard) ---
+    // --- DATA LOADING ---
     function locateUser() { map.locate({setView: true, maxZoom: 16}); }
     map.on('locationfound', function(e) { 
         if(userMarker) map.removeLayer(userMarker);
@@ -267,7 +242,6 @@
         document.head.appendChild(script);
     }
     
-    // --- DRAWING LOGIC ---
     function drawHouseNumbers() {
         if (!currentSafeId || !window["housenumbers_" + currentSafeId]) return;
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
@@ -287,19 +261,13 @@
     }
     map.on('zoomend', checkZoomAndDisplay);
 
-    function style(feature) {
-        return { fillColor: getStockColor(feature.properties.Total_Units), weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7 };
-    }
+    function style(feature) { return { fillColor: getStockColor(feature.properties.Total_Units), weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7 }; }
 
     function buildingStyle(feature) {
         var props = feature.properties;
         var color = '#2c3e50'; 
         if (currentMode === 'energy') color = getEnergyColor(props.Energy_Class);
-        else if (currentMode === 'transactions') {
-             // For map coloring, use 5y Median EUR/m2 as the default "Heatmap" value
-             var val = props['5y_sqm_median'];
-             color = getMarketColor(val);
-        }
+        else if (currentMode === 'transactions') color = getMarketColor(props['5y_sqm_median']);
         return { fillColor: color, weight: 1, opacity: 1, color: '#555', fillOpacity: 0.9 };
     }
 
@@ -339,7 +307,32 @@
         updateInfo(); currentSafeId = null; currentActiveBuilding = null; houseNumbersLayer = null;
     }
 
-    // --- INFO PANEL LOGIC (UPDATED) ---
+    // --- INFO PANEL LOGIC (FIXED) ---
+    
+    // Helper to generate Bucket Rows
+    function getBucketRows(props, total) {
+        var html = '';
+        function row(l, v) { 
+            var pct = (total > 0 && v) ? Math.round((v / total) * 100) : 0;
+            return '<div class="info-row"><span class="label">' + l + '</span><span class="dots"></span><span class="value"><b>' + (v||0) + '</b> <span class="pct">(' + pct + '%)</span></span></div>';
+        }
+        html += row('0 - 25 m²', props['[0-25]']);
+        html += row('25 - 50 m²', props['[25-50]']);
+        html += row('50 - 75 m²', props['[50-75]']);
+        html += row('75 - 100 m²', props['[75-100]']);
+        html += row('100+ m²', (props['[100-125]']||0) + (props['[125-150]']||0) + (props['[150-175]']||0) + (props['[175-200]']||0) + (props['[200+]']||0));
+        return html;
+    }
+
+    // Helper to count Energy Data from loaded chunks
+    function calculateEnergyTotals(safeId) {
+        var bVar = window["buildings_" + safeId];
+        if (!bVar || !bVar.features) return null;
+        var total = bVar.features.length;
+        var withData = bVar.features.filter(f => f.properties.Energy_Class).length;
+        return { total: total, withData: withData };
+    }
+
     function updateInfo(props, type) {
         var div = document.getElementById('info-panel');
         if (window.innerWidth <= 600) div.style.display = props ? 'block' : 'none'; 
@@ -349,10 +342,10 @@
 
         var title = (type === "neighborhood") ? props.apkaime : (props.Full_Address || props.Building_Cadastre_Nr);
         var html = '<h4>' + title + '</h4>';
+        var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
 
-        // --- TRANSACTIONS VIEW ---
+        // --- MARKET VIEW ---
         if (currentMode === 'transactions') {
-            // Render Filters
             html += `<div class="market-filters">
                 <div class="filter-row">
                     <div class="filter-btn ${marketUnit=='eur'?'active':''}" onclick="setMarketFilter('unit','eur')">EUR</div>
@@ -372,58 +365,56 @@
                 </div>
             </div>`;
             
-            // DYNAMIC DATA FETCHING
-            // Key format: "5y_eur_median"
             var key = marketTime + '_' + marketUnit + '_' + marketStat;
             var val = props[key];
-            
-            // Format Value
-            var displayVal = "-";
-            if (val !== undefined && val !== null) {
-                displayVal = Math.round(val).toLocaleString() + (marketUnit === 'eur' ? ' €' : ' €/m²');
-            }
+            var displayVal = (val !== undefined && val !== null) ? Math.round(val).toLocaleString() + (marketUnit === 'eur' ? ' €' : ' €/m²') : "-";
 
-            // Turnover Ratio Calculation
             var salesCount = props[marketTime + '_count'] || 0;
-            var totalStock = props.Total_Units || 1; // Avoid divide by zero
-            var turnover = ((salesCount / totalStock) * 100).toFixed(1) + '%';
-            if (totalStock <= 1) turnover = "-";
+            var turnover = (total > 0) ? ((salesCount / total) * 100).toFixed(1) + '%' : "-";
 
             html += '<div class="info-row"><span class="label">Value</span><span class="dots"></span><span class="value" style="font-size:1.2em; color:#8e44ad;"><b>' + displayVal + '</b></span></div>';
-            
             html += '<hr style="border:0; border-top:1px dashed #ccc; margin:8px 0;">';
-            
-            html += '<div class="info-row"><span class="label">Total Stock</span><span class="dots"></span><span class="value">' + (props.Total_Units || '-') + '</span></div>';
+            html += '<div class="info-row"><span class="label">Total Stock</span><span class="dots"></span><span class="value">' + total + '</span></div>';
             html += '<div class="info-row"><span class="label">Total Sales</span><span class="dots"></span><span class="value"><b>' + salesCount + '</b></span></div>';
             html += '<div class="info-row"><span class="label">Turnover</span><span class="dots"></span><span class="value">' + turnover + '</span></div>';
             
+            // FIX: Add buckets for Market view too
+            html += '<hr style="border:0; border-top:1px dashed #ccc; margin:8px 0;">';
+            html += getBucketRows(props, total);
         } 
-        // --- STOCK & ENERGY VIEWS (Same as before) ---
+        
+        // --- ENERGY VIEW ---
         else if (currentMode === 'energy') {
-            if (props.Energy_Class) {
-                 html += '<div class="info-total">Class: <span style="color:'+getEnergyColor(props.Energy_Class)+'"><b>' + props.Energy_Class + '</b></span></div>';
-                 html += '<div class="info-row"><span class="label">Efficiency</span><span class="dots"></span><span class="value">' + (props.Energy_Eff_Heating || '-') + '</span></div>';
-                 html += '<div class="info-row"><span class="label">Consumption</span><span class="dots"></span><span class="value">' + (props.Energy_Total_Consumption || '-') + '</span></div>';
-                 if(props.Renovation_Info && props.Renovation_Info !== 'No') html += '<div style="margin-top:5px; color:#27ae60; font-size:11px;">Renovated: ' + props.Renovation_Info + '</div>';
+            if (type === "neighborhood") {
+                // FIX: Calculate totals dynamically for neighborhood
+                var stats = calculateEnergyTotals(props.safe_id);
+                if (stats) {
+                    html += '<div class="info-row"><span class="label">Total Buildings</span><span class="dots"></span><span class="value"><b>' + stats.total + '</b></span></div>';
+                    html += '<div class="info-row"><span class="label">With Energy Data</span><span class="dots"></span><span class="value"><b>' + stats.withData + '</b></span></div>';
+                } else {
+                    html += '<div class="info-total">Loading stats...</div>';
+                }
             } else {
-                 html += '<div style="padding:10px; color:#999; text-align:center;">No Energy Data</div>';
+                // Building View
+                if (props.Energy_Class) {
+                     html += '<div class="info-total">Class: <span style="color:'+getEnergyColor(props.Energy_Class)+'"><b>' + props.Energy_Class + '</b></span></div>';
+                     html += '<div class="info-row"><span class="label">Efficiency</span><span class="dots"></span><span class="value">' + (props.Energy_Eff_Heating || '-') + '</span></div>';
+                     html += '<div class="info-row"><span class="label">Consumption</span><span class="dots"></span><span class="value">' + (props.Energy_Total_Consumption || '-') + '</span></div>';
+                     // FIX: Explicit Comparison Field
+                     html += '<div class="info-row"><span class="label">vs Similar</span><span class="dots"></span><span class="value">' + (props.Energy_Comparison || '-') + '</span></div>';
+                     
+                     if(props.Renovation_Info && props.Renovation_Info !== 'No') html += '<div style="margin-top:5px; color:#27ae60; font-size:11px;">Renovated: ' + props.Renovation_Info + '</div>';
+                } else {
+                     html += '<div style="padding:10px; color:#999; text-align:center;">No Energy Data</div>';
+                }
             }
         } 
-        else { // Stock Mode
-            var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
+        
+        // --- STOCK VIEW ---
+        else { 
             html += '<div class="info-total">Total Units: ' + total + '</div>';
-            if (type === "neighborhood") html += '<div style="font-size:11px; color:#777;">Zoom in for details</div>';
-            else {
-                function row(l, v) { 
-                    var pct = (total > 0 && v) ? Math.round((v / total) * 100) : 0;
-                    return '<div class="info-row"><span class="label">' + l + '</span><span class="dots"></span><span class="value"><b>' + (v||0) + '</b> <span class="pct">(' + pct + '%)</span></span></div>';
-                }
-                html += row('0 - 25 m²', props['[0-25]']);
-                html += row('25 - 50 m²', props['[25-50]']);
-                html += row('50 - 75 m²', props['[50-75]']);
-                html += row('75 - 100 m²', props['[75-100]']);
-                html += row('100+ m²', (props['[100-125]']||0) + (props['[125-150]']||0) + (props['[150-175]']||0) + (props['[175-200]']||0) + (props['[200+]']||0));
-            }
+            // FIX: Always show buckets, even for neighborhoods
+            html += getBucketRows(props, total);
         }
 
         div.innerHTML = html;
