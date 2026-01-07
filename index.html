@@ -20,7 +20,7 @@
             border-radius: 5px; font-weight: bold; pointer-events: none;
         }
 
-        /* LAYER SWITCHER */
+        /* LAYER SWITCHER (Top Center) */
         #layer-control {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             z-index: 1000; background: white; border-radius: 50px; padding: 4px;
@@ -41,7 +41,7 @@
             display: none; 
         }
         @media (min-width: 601px) {
-            #info-panel { top: 70px; right: 10px; width: 260px; display: block; }
+            #info-panel { top: 70px; right: 10px; width: 280px; display: block; }
         }
         @media (max-width: 600px) {
             #info-panel { left: 10px; right: 10px; bottom: 20px; width: auto; max-height: 40vh; }
@@ -55,27 +55,27 @@
         .value { white-space: nowrap; text-align: right; }
         .pct { font-size: 0.9em; color: #7f8c8d; font-weight: normal; margin-left: 3px; }
         
-        /* LEGEND (Energy) */
+        /* MARKET FILTERS (Inside Info Panel) */
+        .market-filters { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; padding-bottom:10px; border-bottom:1px solid #eee;}
+        .filter-row { display: flex; gap: 3px; justify-content: space-between; }
+        .filter-btn {
+            flex: 1; border: 1px solid #ddd; background: #f9f9f9; 
+            padding: 4px; font-size: 10px; cursor: pointer; text-align: center; border-radius: 4px;
+        }
+        .filter-btn.active { background: #9b59b6; color: white; border-color: #8e44ad; font-weight: bold; }
+
+        /* LEGEND */
         #energy-legend {
             position: absolute; z-index: 999;
             background: white; padding: 8px; border-radius: 8px;
             box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            display: none; /* Hidden by default, shown in Energy mode */
-            flex-direction: column; gap: 4px;
-            font-size: 11px;
+            display: none; flex-direction: column; gap: 4px; font-size: 11px;
         }
         .legend-item { display: flex; align-items: center; gap: 6px; }
         .color-box { width: 15px; height: 15px; border-radius: 3px; border: 1px solid #ccc;}
         
-        /* LEGEND POSITIONING */
-        /* Desktop: Above Back Button (Bottom Right) */
-        @media (min-width: 601px) {
-            #energy-legend { bottom: 80px; right: 10px; width: 120px; }
-        }
-        /* Mobile: Below Find Me (Top Right) */
-        @media (max-width: 600px) {
-            #energy-legend { top: 130px; right: 10px; width: auto; }
-        }
+        @media (min-width: 601px) { #energy-legend { bottom: 80px; right: 10px; width: 120px; } }
+        @media (max-width: 600px) { #energy-legend { top: 130px; right: 10px; width: auto; } }
         
         /* BUTTONS */
         .btn-wrapper { 
@@ -90,12 +90,10 @@
         .locate-btn { background: #3498db; }
         .legend-toggle { background: #fff; color: #333; font-size: 12px; padding: 6px 10px; display: none;} 
 
-        /* UPDATED HOUSE NUMBERS STYLE (Dark Grey) */
+        /* HOUSE NUMBERS */
         .house-num-tooltip {
-            background: transparent;
-            border: none; box-shadow: none;
-            font-size: 12px; font-weight: normal;
-            color: #444444; /* Dark Grey as requested */
+            background: transparent; border: none; box-shadow: none;
+            font-size: 12px; font-weight: normal; color: #444444;
             text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; 
         }
     </style>
@@ -117,19 +115,10 @@
 </div>
 
 <div id="energy-legend">
-    <div style="font-weight:bold; margin-bottom:4px; border-bottom:1px solid #eee;">Efficiency Class</div>
-    <div class="legend-item"><span class="color-box" style="background:#2ecc71"></span> A (High)</div>
-    <div class="legend-item"><span class="color-box" style="background:#a3e059"></span> B</div>
-    <div class="legend-item"><span class="color-box" style="background:#f1c40f"></span> C</div>
-    <div class="legend-item"><span class="color-box" style="background:#f39c12"></span> D</div>
-    <div class="legend-item"><span class="color-box" style="background:#e67e22"></span> E</div>
-    <div class="legend-item"><span class="color-box" style="background:#e74c3c"></span> F (Low)</div>
-    <div class="legend-item"><span class="color-box" style="background:#95a5a6"></span> No Data</div>
-</div>
+    </div>
 
 <div class="btn-wrapper">
     <div id="legendToggle" class="map-btn legend-toggle" onclick="toggleLegend()">📝 Legend</div>
-    
     <div class="map-btn locate-btn" onclick="locateUser()">📍 Find Me</div>
     <div id="backButton" class="map-btn back-btn" onclick="resetMap()">⬅ Back</div>
 </div>
@@ -137,17 +126,11 @@
 <script src="neighborhood_data.js"></script>
 
 <script>
-    // 1. Initialize Map
     var map = L.map('map').setView([56.9496, 24.1052], 11);
-
-    map.createPane('labels');
-    map.getPane('labels').style.zIndex = 650; 
-    map.getPane('labels').style.pointerEvents = 'none';
+    map.createPane('labels'); map.getPane('labels').style.zIndex = 650; map.getPane('labels').style.pointerEvents = 'none';
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19
+        attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 19
     }).addTo(map);
 
     // --- VARIABLES ---
@@ -158,60 +141,72 @@
     var currentActiveBuilding = null;
     var currentSafeId = null;
     var currentMode = 'stock'; 
+    
+    // MARKET FILTER STATE
+    var marketUnit = 'sqm';   // 'eur' or 'sqm'
+    var marketStat = 'median'; // 'min', 'mean', 'median', 'max'
+    var marketTime = '5y';     // '1y', '3y', '5y', '10y'
 
-    // --- COLOR HELPERS ---
+    // --- COLOR LOGIC ---
     function getStockColor(d) {
         return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
                d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
                d > 0     ? '#FED976' : '#FFEDA0';
     }
-
     function getEnergyColor(cls) {
-        if (!cls) return '#95a5a6'; // Grey for No Data
+        if (!cls) return '#95a5a6';
         switch(cls.toUpperCase()) {
-            case 'A': return '#2ecc71'; // Green
-            case 'B': return '#a3e059'; // Light Green
-            case 'C': return '#f1c40f'; // Yellow
-            case 'D': return '#f39c12'; // Orange-Yellow
-            case 'E': return '#e67e22'; // Orange
-            case 'F': return '#e74c3c'; // Red
+            case 'A': return '#2ecc71'; case 'B': return '#a3e059';
+            case 'C': return '#f1c40f'; case 'D': return '#f39c12';
+            case 'E': return '#e67e22'; case 'F': return '#e74c3c';
             default: return '#95a5a6';
         }
     }
+    function getMarketColor(val) {
+        // Purple Gradient for Price/Sqm (Approx range 500 - 3000)
+        if (!val) return '#bdc3c7'; // Grey
+        return val > 3000 ? '#4a235a' : val > 2500 ? '#5b2c6f' :
+               val > 2000 ? '#6c3483' : val > 1500 ? '#8e44ad' :
+               val > 1000 ? '#a569bd' : '#d2b4de';
+    }
 
-    // --- LAYER SWITCHING ---
+    // --- MODE SWITCHING ---
     function setMode(mode, btnElement) {
         currentMode = mode;
-        
-        // Buttons UI
         document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
         if(btnElement) btnElement.classList.add('active');
 
-        // Styles
         if (buildingsLayer) buildingsLayer.setStyle(buildingStyle);
         
-        // Legend Visibility
+        // Legend Logic
         var legBtn = document.getElementById('legendToggle');
         var legBox = document.getElementById('energy-legend');
         
         if (mode === 'energy') {
-            legBtn.style.display = 'block';
-            legBox.style.display = 'flex';
+            legBtn.style.display = 'block'; legBox.innerHTML = getEnergyLegendHTML();
+        } else if (mode === 'transactions') {
+            legBtn.style.display = 'block'; legBox.innerHTML = getMarketLegendHTML();
         } else {
-            legBtn.style.display = 'none';
-            legBox.style.display = 'none';
+            legBtn.style.display = 'none'; legBox.style.display = 'none';
         }
 
-        // Refresh Info
+        refreshInfo();
+    }
+
+    // --- MARKET FILTER LOGIC ---
+    function setMarketFilter(type, val) {
+        if (type === 'unit') marketUnit = val;
+        if (type === 'stat') marketStat = val;
+        if (type === 'time') marketTime = val;
+        refreshInfo();
+    }
+
+    function refreshInfo() {
         if (currentActiveBuilding) {
             updateInfo(currentActiveBuilding.feature.properties, "building");
         } else if (currentSafeId) {
-             // We need to re-fetch the neighborhood properties to show correct totals
-             // We can do this by finding the layer in neighborhoodLayer
              neighborhoodLayer.eachLayer(function(layer){
-                 if(layer.feature.properties.safe_id === currentSafeId) {
-                     updateInfo(layer.feature.properties, "neighborhood");
-                 }
+                 if(layer.feature.properties.safe_id === currentSafeId) updateInfo(layer.feature.properties, "neighborhood");
              });
         }
     }
@@ -220,168 +215,117 @@
         var leg = document.getElementById('energy-legend');
         leg.style.display = (leg.style.display === 'none') ? 'flex' : 'none';
     }
-
-    // --- GEOLOCATION ---
-    function locateUser() { map.locate({setView: true, maxZoom: 16}); }
-    function onLocationFound(e) {
-        var radius = e.accuracy / 2;
-        if (userMarker) map.removeLayer(userMarker);
-        userMarker = L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
-        L.circle(e.latlng, radius).addTo(map);
+    
+    function getEnergyLegendHTML() {
+        return `<b>Efficiency Class</b>
+        <div class="legend-item"><span class="color-box" style="background:#2ecc71"></span> A</div>
+        <div class="legend-item"><span class="color-box" style="background:#a3e059"></span> B</div>
+        <div class="legend-item"><span class="color-box" style="background:#f1c40f"></span> C</div>
+        <div class="legend-item"><span class="color-box" style="background:#f39c12"></span> D</div>
+        <div class="legend-item"><span class="color-box" style="background:#e67e22"></span> E</div>
+        <div class="legend-item"><span class="color-box" style="background:#e74c3c"></span> F</div>`;
     }
-    map.on('locationfound', onLocationFound);
+    
+    function getMarketLegendHTML() {
+        return `<b>Price EUR/m²</b>
+        <div class="legend-item"><span class="color-box" style="background:#4a235a"></span> > 3000</div>
+        <div class="legend-item"><span class="color-box" style="background:#6c3483"></span> 2000 - 3000</div>
+        <div class="legend-item"><span class="color-box" style="background:#8e44ad"></span> 1500 - 2000</div>
+        <div class="legend-item"><span class="color-box" style="background:#a569bd"></span> 1000 - 1500</div>
+        <div class="legend-item"><span class="color-box" style="background:#d2b4de"></span> < 1000</div>`;
+    }
 
-    // --- DATA LOADING ---
+    // --- GEO & DATA LOADING (Standard) ---
+    function locateUser() { map.locate({setView: true, maxZoom: 16}); }
+    map.on('locationfound', function(e) { 
+        if(userMarker) map.removeLayer(userMarker);
+        userMarker = L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
+    });
+
     function loadNeighborhoodData(safeName) {
         currentSafeId = safeName;
         document.getElementById('loader').style.display = 'block';
-
         var buildVar = "buildings_" + safeName;
         
         function checkDone() {
              if (window[buildVar]) {
                  document.getElementById('loader').style.display = 'none';
-                 // Update Info Panel with Neighborhood Stats (which now might need building data)
-                 // Trigger a refresh of the info panel now that data is loaded
-                 neighborhoodLayer.eachLayer(function(layer){
-                     if(layer.feature.properties.safe_id === safeName) {
-                         updateInfo(layer.feature.properties, "neighborhood");
-                     }
-                 });
+                 refreshInfo();
              }
         }
-
-        if (window[buildVar]) {
-            drawBuildings(window[buildVar]);
-            checkDone();
-        } else {
-            loadScript('building_chunks/buildings_' + safeName + '.js', function() {
-                if (window[buildVar]) drawBuildings(window[buildVar]);
-                checkDone();
-            });
-        }
+        if (window[buildVar]) { drawBuildings(window[buildVar]); checkDone(); } 
+        else { loadScript('building_chunks/buildings_' + safeName + '.js', function() { if (window[buildVar]) drawBuildings(window[buildVar]); checkDone(); }); }
 
         var numVar = "housenumbers_" + safeName;
-        if (!window[numVar]) {
-            loadScript('housenumbers_chunks/housenumbers_' + safeName + '.js', function() {
-                checkZoomAndDisplay();
-            });
-        } else {
-            checkZoomAndDisplay();
-        }
+        if (!window[numVar]) loadScript('housenumbers_chunks/housenumbers_' + safeName + '.js', function() { checkZoomAndDisplay(); });
+        else checkZoomAndDisplay();
     }
 
     function loadScript(url, callback) {
-        var script = document.createElement('script');
-        script.src = url;
-        script.onload = callback;
-        script.onerror = function() { 
-            console.log("Data chunk not found: " + url); 
-            document.getElementById('loader').style.display = 'none'; 
-        };
+        var script = document.createElement('script'); script.src = url; script.onload = callback;
+        script.onerror = function() { document.getElementById('loader').style.display = 'none'; };
         document.head.appendChild(script);
     }
-
+    
+    // --- DRAWING LOGIC ---
     function drawHouseNumbers() {
-        if (!currentSafeId) return;
-        var data = window["housenumbers_" + currentSafeId];
-        if (!data) return;
-        if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) return;
+        if (!currentSafeId || !window["housenumbers_" + currentSafeId]) return;
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
-
-        houseNumbersLayer = L.geoJson(data, {
+        houseNumbersLayer = L.geoJson(window["housenumbers_" + currentSafeId], {
             pointToLayer: function (feature, latlng) {
-                var num = feature.properties.numurs || feature.properties.housenumber; 
-                if (!num) return null;
-                var marker = L.circleMarker(latlng, {
-                    radius: 0, opacity: 0, fillOpacity: 0, pane: 'labels'
-                });
-                marker.bindTooltip(num, {
-                    permanent: true, direction: 'center', className: 'house-num-tooltip', offset: [0, 0]
-                });
-                return marker;
+                var num = feature.properties.numurs || feature.properties.housenumber; if (!num) return null;
+                return L.circleMarker(latlng, { radius: 0, opacity:0, fillOpacity:0, pane:'labels' })
+                    .bindTooltip(num, { permanent:true, direction:'center', className:'house-num-tooltip', offset:[0,0] });
             }
         });
         map.addLayer(houseNumbersLayer);
     }
-
+    
     function checkZoomAndDisplay() {
-        var z = map.getZoom();
-        if (z >= 14 && currentSafeId) {
-            drawHouseNumbers();
-        } else {
-            if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
-            houseNumbersLayer = null;
-        }
+        if (map.getZoom() >= 14 && currentSafeId) drawHouseNumbers();
+        else if (houseNumbersLayer) { map.removeLayer(houseNumbersLayer); houseNumbersLayer = null; }
     }
     map.on('zoomend', checkZoomAndDisplay);
 
-    // --- STYLES ---
     function style(feature) {
-        // Neighborhoods always colored by Stock Density
         return { fillColor: getStockColor(feature.properties.Total_Units), weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7 };
     }
 
     function buildingStyle(feature) {
         var props = feature.properties;
         var color = '#2c3e50'; 
-
-        if (currentMode === 'energy') {
-             color = getEnergyColor(props.Energy_Class);
-        } else if (currentMode === 'transactions') {
-             color = '#9b59b6'; 
+        if (currentMode === 'energy') color = getEnergyColor(props.Energy_Class);
+        else if (currentMode === 'transactions') {
+             // For map coloring, use 5y Median EUR/m2 as the default "Heatmap" value
+             var val = props['5y_sqm_median'];
+             color = getMarketColor(val);
         }
-
         return { fillColor: color, weight: 1, opacity: 1, color: '#555', fillOpacity: 0.9 };
     }
 
-    function highlightNeighborhood(e) {
-        var layer = e.target;
-        layer.setStyle({ weight: 4, color: '#666', dashArray: '', fillOpacity: 0.7 });
-        updateInfo(layer.feature.properties, "neighborhood");
-    }
-    function resetNeighborhood(e) {
-        neighborhoodLayer.resetStyle(e.target);
-        if (document.getElementById('backButton').style.display === 'none') updateInfo(); 
-    }
     function onNeighborhoodClick(e) {
-        var layer = e.target;
-        var props = layer.feature.properties;
-        var safeName = props.safe_id; 
-        if (!safeName) return;
+        var layer = e.target; var props = layer.feature.properties;
+        if (!props.safe_id) return;
         map.fitBounds(layer.getBounds());
         if(neighborhoodLayer) map.removeLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'block';
-        
-        loadNeighborhoodData(safeName);
-        // Info update happens inside loadNeighborhoodData success to calculate totals
-    }
-    function onEachNeighborhood(feature, layer) {
-        layer.on({ mouseover: highlightNeighborhood, mouseout: resetNeighborhood, click: onNeighborhoodClick });
+        loadNeighborhoodData(props.safe_id);
     }
 
     function drawBuildings(geojsonData) {
         if (buildingsLayer) map.removeLayer(buildingsLayer);
         currentActiveBuilding = null; 
-        buildingsLayer = L.geoJson(geojsonData, { style: buildingStyle, onEachFeature: onBuildingFeature }).addTo(map);
+        buildingsLayer = L.geoJson(geojsonData, { style: buildingStyle, onEachFeature: function(feature, layer) {
+            layer.on({ click: function(e) {
+                var clicked = e.target;
+                if (currentActiveBuilding && currentActiveBuilding !== clicked) buildingsLayer.resetStyle(currentActiveBuilding);
+                clicked.setStyle({ color: '#ff0000', weight: 3, fillColor: buildingStyle(feature).fillColor, fillOpacity: 1 });
+                clicked.bringToFront();
+                currentActiveBuilding = clicked;
+                updateInfo(clicked.feature.properties, "building");
+            }});
+        }}).addTo(map);
         if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) houseNumbersLayer.bringToFront();
-    }
-
-    function onBuildingFeature(feature, layer) {
-        layer.on({
-            click: function(e) {
-                var clickedLayer = e.target;
-                if (currentActiveBuilding && currentActiveBuilding !== clickedLayer) {
-                    buildingsLayer.resetStyle(currentActiveBuilding);
-                }
-                // Highlight: Red border, but keep fill color based on mode
-                var currentFill = buildingStyle(feature).fillColor;
-                clickedLayer.setStyle({ color: '#ff0000', weight: 3, fillColor: currentFill, fillOpacity: 1 });
-                clickedLayer.bringToFront();
-                currentActiveBuilding = clickedLayer;
-                updateInfo(clickedLayer.feature.properties, "building");
-            }
-        });
     }
 
     function resetMap() {
@@ -390,99 +334,107 @@
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
         if (neighborhoodLayer) map.addLayer(neighborhoodLayer);
         document.getElementById('backButton').style.display = 'none';
-        
-        // Hide Legend in Overview
         document.getElementById('legendToggle').style.display = 'none';
         document.getElementById('energy-legend').style.display = 'none';
-        
-        updateInfo(); 
-        currentSafeId = null;
-        currentActiveBuilding = null;
-        houseNumbersLayer = null;
+        updateInfo(); currentSafeId = null; currentActiveBuilding = null; houseNumbersLayer = null;
     }
 
-    // --- INFO PANEL LOGIC ---
+    // --- INFO PANEL LOGIC (UPDATED) ---
     function updateInfo(props, type) {
         var div = document.getElementById('info-panel');
-        if (window.innerWidth <= 600) { div.style.display = props ? 'block' : 'none'; } 
-        else { div.style.display = 'block'; }
+        if (window.innerWidth <= 600) div.style.display = props ? 'block' : 'none'; 
+        else div.style.display = 'block';
 
-        if (!props) { 
-            div.innerHTML = '<h4>Riga Data</h4><div style="text-align:center; color:#777;">Click a neighborhood</div>'; 
-            return; 
-        }
+        if (!props) { div.innerHTML = '<h4>Riga Data</h4><div style="text-align:center; color:#777;">Click a neighborhood</div>'; return; }
 
         var title = (type === "neighborhood") ? props.apkaime : (props.Full_Address || props.Building_Cadastre_Nr);
         var html = '<h4>' + title + '</h4>';
 
-        // --- NEIGHBORHOOD VIEW ---
-        if (type === "neighborhood") {
-             // Calculate Totals using loaded building data if available
-             var totalBld = 0;
-             var totalEnergy = 0;
-             
-             // Check if building data for this neighborhood is loaded in memory
-             var buildVar = "buildings_" + props.safe_id;
-             if (window[buildVar]) {
-                 // Calculate from actual building features
-                 var features = window[buildVar].features;
-                 totalBld = features.length;
-                 totalEnergy = features.filter(f => f.properties.Energy_Class).length;
-                 
-                 html += '<div class="info-row"><span class="label">Total Buildings</span><span class="dots"></span><span class="value"><b>' + totalBld + '</b></span></div>';
-                 html += '<div class="info-row"><span class="label">With Energy Data</span><span class="dots"></span><span class="value"><b>' + totalEnergy + '</b></span></div>';
-                 html += '<div style="font-size:11px; color:#777; margin-top:8px; text-align:center;">Zoom in to see details</div>';
-             } else {
-                 // Fallback if buildings not loaded yet (hover state)
-                 var totalUnits = props.Total_Units ? Math.round(props.Total_Units) : 0;
-                 html += '<div class="info-total">Total Units: ' + totalUnits + '</div>';
-                 html += '<div style="font-size:11px; color:#777;">Click to load detailed data</div>';
-             }
-             
-             div.innerHTML = html;
-             return;
-        }
+        // --- TRANSACTIONS VIEW ---
+        if (currentMode === 'transactions') {
+            // Render Filters
+            html += `<div class="market-filters">
+                <div class="filter-row">
+                    <div class="filter-btn ${marketUnit=='eur'?'active':''}" onclick="setMarketFilter('unit','eur')">EUR</div>
+                    <div class="filter-btn ${marketUnit=='sqm'?'active':''}" onclick="setMarketFilter('unit','sqm')">EUR/m²</div>
+                </div>
+                <div class="filter-row" style="margin-top:3px;">
+                    <div class="filter-btn ${marketStat=='min'?'active':''}" onclick="setMarketFilter('stat','min')">Min</div>
+                    <div class="filter-btn ${marketStat=='mean'?'active':''}" onclick="setMarketFilter('stat','mean')">Avg</div>
+                    <div class="filter-btn ${marketStat=='median'?'active':''}" onclick="setMarketFilter('stat','median')">Med</div>
+                    <div class="filter-btn ${marketStat=='max'?'active':''}" onclick="setMarketFilter('stat','max')">Max</div>
+                </div>
+                <div class="filter-row" style="margin-top:3px;">
+                    <div class="filter-btn ${marketTime=='1y'?'active':''}" onclick="setMarketFilter('time','1y')">1y</div>
+                    <div class="filter-btn ${marketTime=='3y'?'active':''}" onclick="setMarketFilter('time','3y')">3y</div>
+                    <div class="filter-btn ${marketTime=='5y'?'active':''}" onclick="setMarketFilter('time','5y')">5y</div>
+                    <div class="filter-btn ${marketTime=='10y'?'active':''}" onclick="setMarketFilter('time','10y')">10y</div>
+                </div>
+            </div>`;
+            
+            // DYNAMIC DATA FETCHING
+            // Key format: "5y_eur_median"
+            var key = marketTime + '_' + marketUnit + '_' + marketStat;
+            var val = props[key];
+            
+            // Format Value
+            var displayVal = "-";
+            if (val !== undefined && val !== null) {
+                displayVal = Math.round(val).toLocaleString() + (marketUnit === 'eur' ? ' €' : ' €/m²');
+            }
 
-        // --- BUILDING VIEW ---
-        if (currentMode === 'stock') {
+            // Turnover Ratio Calculation
+            var salesCount = props[marketTime + '_count'] || 0;
+            var totalStock = props.Total_Units || 1; // Avoid divide by zero
+            var turnover = ((salesCount / totalStock) * 100).toFixed(1) + '%';
+            if (totalStock <= 1) turnover = "-";
+
+            html += '<div class="info-row"><span class="label">Value</span><span class="dots"></span><span class="value" style="font-size:1.2em; color:#8e44ad;"><b>' + displayVal + '</b></span></div>';
+            
+            html += '<hr style="border:0; border-top:1px dashed #ccc; margin:8px 0;">';
+            
+            html += '<div class="info-row"><span class="label">Total Stock</span><span class="dots"></span><span class="value">' + (props.Total_Units || '-') + '</span></div>';
+            html += '<div class="info-row"><span class="label">Total Sales</span><span class="dots"></span><span class="value"><b>' + salesCount + '</b></span></div>';
+            html += '<div class="info-row"><span class="label">Turnover</span><span class="dots"></span><span class="value">' + turnover + '</span></div>';
+            
+        } 
+        // --- STOCK & ENERGY VIEWS (Same as before) ---
+        else if (currentMode === 'energy') {
+            if (props.Energy_Class) {
+                 html += '<div class="info-total">Class: <span style="color:'+getEnergyColor(props.Energy_Class)+'"><b>' + props.Energy_Class + '</b></span></div>';
+                 html += '<div class="info-row"><span class="label">Efficiency</span><span class="dots"></span><span class="value">' + (props.Energy_Eff_Heating || '-') + '</span></div>';
+                 html += '<div class="info-row"><span class="label">Consumption</span><span class="dots"></span><span class="value">' + (props.Energy_Total_Consumption || '-') + '</span></div>';
+                 if(props.Renovation_Info && props.Renovation_Info !== 'No') html += '<div style="margin-top:5px; color:#27ae60; font-size:11px;">Renovated: ' + props.Renovation_Info + '</div>';
+            } else {
+                 html += '<div style="padding:10px; color:#999; text-align:center;">No Energy Data</div>';
+            }
+        } 
+        else { // Stock Mode
             var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
             html += '<div class="info-total">Total Units: ' + total + '</div>';
-            function row(label, val) { 
-                var v = val ? Math.round(val) : 0;
-                var pct = (total > 0) ? Math.round((v / total) * 100) : 0;
-                return '<div class="info-row"><span class="label">' + label + '</span><span class="dots"></span><span class="value"><b>' + v + '</b> <span class="pct">(' + pct + '%)</span></span></div>';
+            if (type === "neighborhood") html += '<div style="font-size:11px; color:#777;">Zoom in for details</div>';
+            else {
+                function row(l, v) { 
+                    var pct = (total > 0 && v) ? Math.round((v / total) * 100) : 0;
+                    return '<div class="info-row"><span class="label">' + l + '</span><span class="dots"></span><span class="value"><b>' + (v||0) + '</b> <span class="pct">(' + pct + '%)</span></span></div>';
+                }
+                html += row('0 - 25 m²', props['[0-25]']);
+                html += row('25 - 50 m²', props['[25-50]']);
+                html += row('50 - 75 m²', props['[50-75]']);
+                html += row('75 - 100 m²', props['[75-100]']);
+                html += row('100+ m²', (props['[100-125]']||0) + (props['[125-150]']||0) + (props['[150-175]']||0) + (props['[175-200]']||0) + (props['[200+]']||0));
             }
-            html += row('0 - 25 m²', props['[0-25]']);
-            html += row('25 - 50 m²', props['[25-50]']);
-            html += row('50 - 75 m²', props['[50-75]']);
-            html += row('75 - 100 m²', props['[75-100]']);
-            html += row('100+ m²', (props['[100-125]']||0) + (props['[125-150]']||0) + (props['[150-175]']||0) + (props['[175-200]']||0) + (props['[200+]']||0));
-        
-        } else if (currentMode === 'energy') {
-            if (props.Energy_Class) {
-                 html += '<div class="info-total">Energy Class: <span style="color:'+getEnergyColor(props.Energy_Class)+'; font-size:1.2em;">' + props.Energy_Class + '</span></div>';
-                 
-                 html += '<div class="info-row"><span class="label">Efficiency (kWh/m²)</span><span class="dots"></span><span class="value"><b>' + (props.Energy_Eff_Heating || '-') + '</b></span></div>';
-                 
-                 html += '<div class="info-row"><span class="label">Total Cons. (MWh)</span><span class="dots"></span><span class="value">' + (props.Energy_Total_Consumption || '-') + '</span></div>';
-                 
-                 html += '<div class="info-row"><span class="label">vs Similar Bldgs</span><span class="dots"></span><span class="value">' + (props.Energy_Comparison || '-') + '</span></div>';
-                 
-                 if(props.Renovation_Info && props.Renovation_Info !== 'No') {
-                     html += '<div class="info-row" style="margin-top:5px; color:#27ae60;"><span class="label">Renovated</span><span class="dots"></span><span class="value">' + props.Renovation_Info + '</span></div>';
-                 }
-            } else {
-                 html += '<div style="padding:15px; color:#777; text-align:center; font-style:italic;">No Energy Data Available<br>for this building</div>';
-            }
-            
-        } else if (currentMode === 'transactions') {
-            html += '<div style="padding:10px; color:#999; text-align:center;">Market Data<br>Coming Soon</div>';
         }
 
         div.innerHTML = html;
     }
 
-    neighborhoodLayer = L.geoJson(rigaData, { style: style, onEachFeature: onEachNeighborhood }).addTo(map);
+    neighborhoodLayer = L.geoJson(rigaData, { style: style, onEachFeature: function(feature, layer) {
+        layer.on({ mouseover: function(e){ e.target.setStyle({ weight:4, color:'#666', dashArray:'', fillOpacity:0.7 }); updateInfo(e.target.feature.properties, "neighborhood"); }, 
+                   mouseout: function(e){ neighborhoodLayer.resetStyle(e.target); if(document.getElementById('backButton').style.display==='none') updateInfo(); }, 
+                   click: onNeighborhoodClick });
+    }}).addTo(map);
+    
     updateInfo();
 
 </script>
