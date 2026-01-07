@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Riga Apartments Map, beta</title>
+    <title>Riga Apartments Map</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
@@ -37,39 +37,48 @@
         #info-panel { 
             position: absolute; z-index: 1000; padding: 12px; 
             background: rgba(255,255,255,0.96); box-shadow: 0 0 15px rgba(0,0,0,0.2); 
-            border-radius: 8px; font-size: 13px; max-height: 80vh; overflow-y: auto;
+            border-radius: 8px; font-size: 12px; max-height: 80vh; overflow-y: auto;
             display: none; 
         }
+        /* Adjusted width for Market Table */
         @media (min-width: 601px) {
-            #info-panel { top: 70px; right: 10px; width: 280px; display: block; }
+            #info-panel { top: 70px; right: 10px; width: 320px; display: block; }
         }
         @media (max-width: 600px) {
-            #info-panel { left: 10px; right: 10px; bottom: 20px; width: auto; max-height: 40vh; }
+            #info-panel { left: 10px; right: 10px; bottom: 20px; width: auto; max-height: 50vh; }
         }
 
-        #info-panel h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 15px;}
+        #info-panel h4 { margin: 0 0 8px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; font-size: 14px;}
         .info-total { text-align: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #ccc; font-weight: bold; color: #333;}
-        .info-row { display: flex; align-items: flex-end; margin-bottom: 4px; }
-        .label { white-space: nowrap; color: #555; }
-        .dots { flex-grow: 1; border-bottom: 1px dotted #aaa; margin: 0 5px 4px 5px; opacity: 0.5;}
-        .value { white-space: nowrap; text-align: right; }
-        .pct { font-size: 0.9em; color: #7f8c8d; font-weight: normal; margin-left: 3px; }
         
         /* MARKET FILTERS */
-        .market-filters { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; padding-bottom:10px; border-bottom:1px solid #eee;}
-        .filter-row { display: flex; gap: 3px; justify-content: space-between; }
+        .market-filters { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; padding-bottom:8px; border-bottom:1px solid #eee;}
+        .filter-row { display: flex; gap: 2px; justify-content: space-between; }
         .filter-btn {
             flex: 1; border: 1px solid #ddd; background: #f9f9f9; 
-            padding: 4px; font-size: 10px; cursor: pointer; text-align: center; border-radius: 4px;
+            padding: 4px 0; font-size: 10px; cursor: pointer; text-align: center; border-radius: 3px;
         }
         .filter-btn.active { background: #9b59b6; color: white; border-color: #8e44ad; font-weight: bold; }
 
-        /* LEGEND */
+        /* MARKET TABLE STYLES */
+        .market-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 5px; }
+        .market-table th { text-align: right; padding: 2px 4px; border-bottom: 2px solid #ddd; color: #555; font-weight:bold; }
+        .market-table th:first-child { text-align: left; }
+        .market-table td { text-align: right; padding: 4px 4px; border-bottom: 1px solid #eee; }
+        .market-table td:first-child { text-align: left; font-weight: bold; color: #444; }
+        .market-table .total-row td { border-top: 2px solid #aaa; font-weight: bold; background: #f9f9f9; color: #000; }
+        
+        /* STOCK & ENERGY ROW STYLES (Preserved) */
+        .info-row { display: flex; align-items: flex-end; margin-bottom: 4px; }
+        .info-row .label { white-space: nowrap; color: #555; }
+        .info-row .dots { flex-grow: 1; border-bottom: 1px dotted #aaa; margin: 0 5px 4px 5px; opacity: 0.5;}
+        .info-row .value { white-space: nowrap; text-align: right; }
+        .info-row .pct { font-size: 0.9em; color: #7f8c8d; font-weight: normal; margin-left: 3px; }
+
+        /* LEGEND & BUTTONS */
         #energy-legend {
-            position: absolute; z-index: 999;
-            background: white; padding: 8px; border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            display: none; flex-direction: column; gap: 4px; font-size: 11px;
+            position: absolute; z-index: 999; background: white; padding: 8px; border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2); display: none; flex-direction: column; gap: 4px; font-size: 11px;
         }
         .legend-item { display: flex; align-items: center; gap: 6px; }
         .color-box { width: 15px; height: 15px; border-radius: 3px; border: 1px solid #ccc;}
@@ -77,10 +86,8 @@
         @media (min-width: 601px) { #energy-legend { bottom: 80px; right: 10px; width: 120px; } }
         @media (max-width: 600px) { #energy-legend { top: 130px; right: 10px; width: auto; } }
         
-        /* BUTTONS */
         .btn-wrapper { 
-            position: absolute; z-index: 1000; display: flex; 
-            flex-direction: column; gap: 10px; align-items: flex-end; right: 10px; 
+            position: absolute; z-index: 1000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; right: 10px; 
         }
         @media (min-width: 601px) { .btn-wrapper { bottom: 30px; top: auto; } }
         @media (max-width: 600px) { .btn-wrapper { bottom: auto; top: 10px; } }
@@ -114,8 +121,7 @@
     <div style="text-align:center; color:#777;">Click a neighborhood</div>
 </div>
 
-<div id="energy-legend">
-    </div>
+<div id="energy-legend"></div>
 
 <div class="btn-wrapper">
     <div id="legendToggle" class="map-btn legend-toggle" onclick="toggleLegend()">📝 Legend</div>
@@ -133,43 +139,16 @@
         attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 19
     }).addTo(map);
 
-    // --- VARIABLES ---
-    var neighborhoodLayer;
-    var buildingsLayer = null;
-    var houseNumbersLayer = null; 
-    var userMarker = null;
-    var currentActiveBuilding = null;
-    var currentSafeId = null;
-    var currentMode = 'stock'; 
-    
-    // MARKET FILTER STATE
-    var marketUnit = 'sqm';   // 'eur' or 'sqm'
-    var marketStat = 'median'; // 'min', 'mean', 'median', 'max'
-    var marketTime = '5y';     // '1y', '3y', '5y', '10y'
+    // VARIABLES
+    var neighborhoodLayer, buildingsLayer = null, houseNumbersLayer = null, userMarker = null;
+    var currentActiveBuilding = null, currentSafeId = null, currentMode = 'stock'; 
+    var marketUnit = 'sqm', marketStat = 'median', marketTime = '5y';
 
-    // --- COLOR HELPERS ---
-    function getStockColor(d) {
-        return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' :
-               d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' :
-               d > 0     ? '#FED976' : '#FFEDA0';
-    }
-    function getEnergyColor(cls) {
-        if (!cls) return '#95a5a6';
-        switch(cls.toUpperCase()) {
-            case 'A': return '#2ecc71'; case 'B': return '#a3e059';
-            case 'C': return '#f1c40f'; case 'D': return '#f39c12';
-            case 'E': return '#e67e22'; case 'F': return '#e74c3c';
-            default: return '#95a5a6';
-        }
-    }
-    function getMarketColor(val) {
-        if (!val) return '#bdc3c7'; 
-        return val > 3000 ? '#4a235a' : val > 2500 ? '#5b2c6f' :
-               val > 2000 ? '#6c3483' : val > 1500 ? '#8e44ad' :
-               val > 1000 ? '#a569bd' : '#d2b4de';
-    }
+    // HELPERS
+    function getStockColor(d) { return d > 10000 ? '#800026' : d > 5000 ? '#BD0026' : d > 2000 ? '#E31A1C' : d > 1000 ? '#FC4E2A' : d > 500 ? '#FD8D3C' : d > 100 ? '#FEB24C' : d > 0 ? '#FED976' : '#FFEDA0'; }
+    function getEnergyColor(cls) { if(!cls) return '#95a5a6'; switch(cls.toUpperCase()){ case 'A': return '#2ecc71'; case 'B': return '#a3e059'; case 'C': return '#f1c40f'; case 'D': return '#f39c12'; case 'E': return '#e67e22'; case 'F': return '#e74c3c'; default: return '#95a5a6'; } }
+    function getMarketColor(val) { if (!val) return '#bdc3c7'; return val > 3000 ? '#4a235a' : val > 2500 ? '#5b2c6f' : val > 2000 ? '#6c3483' : val > 1500 ? '#8e44ad' : val > 1000 ? '#a569bd' : '#d2b4de'; }
 
-    // --- MODE SWITCHING ---
     function setMode(mode, btnElement) {
         currentMode = mode;
         document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
@@ -182,7 +161,6 @@
         if (mode === 'energy') { legBtn.style.display = 'block'; legBox.innerHTML = getEnergyLegendHTML(); } 
         else if (mode === 'transactions') { legBtn.style.display = 'block'; legBox.innerHTML = getMarketLegendHTML(); } 
         else { legBtn.style.display = 'none'; legBox.style.display = 'none'; }
-
         refreshInfo();
     }
 
@@ -192,85 +170,56 @@
         if (type === 'time') marketTime = val;
         refreshInfo();
     }
-
     function refreshInfo() {
-        if (currentActiveBuilding) {
-            updateInfo(currentActiveBuilding.feature.properties, "building");
-        } else if (currentSafeId) {
-             neighborhoodLayer.eachLayer(function(layer){
-                 if(layer.feature.properties.safe_id === currentSafeId) updateInfo(layer.feature.properties, "neighborhood");
-             });
-        }
+        if (currentActiveBuilding) updateInfo(currentActiveBuilding.feature.properties, "building");
+        else if (currentSafeId) neighborhoodLayer.eachLayer(function(layer){ if(layer.feature.properties.safe_id === currentSafeId) updateInfo(layer.feature.properties, "neighborhood"); });
     }
-
-    function toggleLegend() {
-        var leg = document.getElementById('energy-legend');
-        leg.style.display = (leg.style.display === 'none') ? 'flex' : 'none';
-    }
+    function toggleLegend() { var leg = document.getElementById('energy-legend'); leg.style.display = (leg.style.display === 'none') ? 'flex' : 'none'; }
     function getEnergyLegendHTML() { return `<b>Efficiency Class</b><div class="legend-item"><span class="color-box" style="background:#2ecc71"></span> A</div><div class="legend-item"><span class="color-box" style="background:#a3e059"></span> B</div><div class="legend-item"><span class="color-box" style="background:#f1c40f"></span> C</div><div class="legend-item"><span class="color-box" style="background:#f39c12"></span> D</div><div class="legend-item"><span class="color-box" style="background:#e67e22"></span> E</div><div class="legend-item"><span class="color-box" style="background:#e74c3c"></span> F</div>`; }
     function getMarketLegendHTML() { return `<b>Price EUR/m²</b><div class="legend-item"><span class="color-box" style="background:#4a235a"></span> > 3000</div><div class="legend-item"><span class="color-box" style="background:#6c3483"></span> 2000 - 3000</div><div class="legend-item"><span class="color-box" style="background:#8e44ad"></span> 1500 - 2000</div><div class="legend-item"><span class="color-box" style="background:#a569bd"></span> 1000 - 1500</div><div class="legend-item"><span class="color-box" style="background:#d2b4de"></span> < 1000</div>`; }
 
-    // --- DATA LOADING ---
+    // DATA LOADING
     function locateUser() { map.locate({setView: true, maxZoom: 16}); }
-    map.on('locationfound', function(e) { 
-        if(userMarker) map.removeLayer(userMarker);
-        userMarker = L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
-    });
+    map.on('locationfound', function(e) { if(userMarker) map.removeLayer(userMarker); userMarker = L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup(); });
 
     function loadNeighborhoodData(safeName) {
         currentSafeId = safeName;
         document.getElementById('loader').style.display = 'block';
         var buildVar = "buildings_" + safeName;
-        
-        function checkDone() {
-             if (window[buildVar]) {
-                 document.getElementById('loader').style.display = 'none';
-                 refreshInfo();
-             }
-        }
+        function checkDone() { if (window[buildVar]) { document.getElementById('loader').style.display = 'none'; refreshInfo(); } }
         if (window[buildVar]) { drawBuildings(window[buildVar]); checkDone(); } 
         else { loadScript('building_chunks/buildings_' + safeName + '.js', function() { if (window[buildVar]) drawBuildings(window[buildVar]); checkDone(); }); }
-
         var numVar = "housenumbers_" + safeName;
         if (!window[numVar]) loadScript('housenumbers_chunks/housenumbers_' + safeName + '.js', function() { checkZoomAndDisplay(); });
         else checkZoomAndDisplay();
     }
-
     function loadScript(url, callback) {
         var script = document.createElement('script'); script.src = url; script.onload = callback;
         script.onerror = function() { document.getElementById('loader').style.display = 'none'; };
         document.head.appendChild(script);
     }
-    
     function drawHouseNumbers() {
         if (!currentSafeId || !window["housenumbers_" + currentSafeId]) return;
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
         houseNumbersLayer = L.geoJson(window["housenumbers_" + currentSafeId], {
             pointToLayer: function (feature, latlng) {
                 var num = feature.properties.numurs || feature.properties.housenumber; if (!num) return null;
-                return L.circleMarker(latlng, { radius: 0, opacity:0, fillOpacity:0, pane:'labels' })
-                    .bindTooltip(num, { permanent:true, direction:'center', className:'house-num-tooltip', offset:[0,0] });
+                return L.circleMarker(latlng, { radius: 0, opacity:0, fillOpacity:0, pane:'labels' }).bindTooltip(num, { permanent:true, direction:'center', className:'house-num-tooltip', offset:[0,0] });
             }
         });
         map.addLayer(houseNumbersLayer);
     }
-    
-    function checkZoomAndDisplay() {
-        if (map.getZoom() >= 14 && currentSafeId) drawHouseNumbers();
-        else if (houseNumbersLayer) { map.removeLayer(houseNumbersLayer); houseNumbersLayer = null; }
-    }
+    function checkZoomAndDisplay() { if (map.getZoom() >= 14 && currentSafeId) drawHouseNumbers(); else if (houseNumbersLayer) { map.removeLayer(houseNumbersLayer); houseNumbersLayer = null; } }
     map.on('zoomend', checkZoomAndDisplay);
 
     function style(feature) { return { fillColor: getStockColor(feature.properties.Total_Units), weight: 2, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7 }; }
-
     function buildingStyle(feature) {
         var props = feature.properties;
         var color = '#2c3e50'; 
         if (currentMode === 'energy') color = getEnergyColor(props.Energy_Class);
-        else if (currentMode === 'transactions') color = getMarketColor(props['5y_sqm_median']);
+        else if (currentMode === 'transactions') color = getMarketColor(props['5y_sqm_median']); // Default heatmap
         return { fillColor: color, weight: 1, opacity: 1, color: '#555', fillOpacity: 0.9 };
     }
-
     function onNeighborhoodClick(e) {
         var layer = e.target; var props = layer.feature.properties;
         if (!props.safe_id) return;
@@ -279,7 +228,6 @@
         document.getElementById('backButton').style.display = 'block';
         loadNeighborhoodData(props.safe_id);
     }
-
     function drawBuildings(geojsonData) {
         if (buildingsLayer) map.removeLayer(buildingsLayer);
         currentActiveBuilding = null; 
@@ -295,7 +243,6 @@
         }}).addTo(map);
         if (houseNumbersLayer && map.hasLayer(houseNumbersLayer)) houseNumbersLayer.bringToFront();
     }
-
     function resetMap() {
         map.setView([56.9496, 24.1052], 11);
         if (buildingsLayer) map.removeLayer(buildingsLayer);
@@ -307,10 +254,9 @@
         updateInfo(); currentSafeId = null; currentActiveBuilding = null; houseNumbersLayer = null;
     }
 
-    // --- INFO PANEL LOGIC (FIXED) ---
-    
-    // Helper to generate Bucket Rows
-    function getBucketRows(props, total) {
+    // --- INFO PANEL LOGIC (FROZEN STOCK/ENERGY + NEW MARKET TABLE) ---
+
+    function getStockRows(props, total) {
         var html = '';
         function row(l, v) { 
             var pct = (total > 0 && v) ? Math.round((v / total) * 100) : 0;
@@ -324,7 +270,6 @@
         return html;
     }
 
-    // Helper to count Energy Data from loaded chunks
     function calculateEnergyTotals(safeId) {
         var bVar = window["buildings_" + safeId];
         if (!bVar || !bVar.features) return null;
@@ -344,7 +289,7 @@
         var html = '<h4>' + title + '</h4>';
         var total = props.Total_Units ? Math.round(props.Total_Units) : 0;
 
-        // --- MARKET VIEW ---
+        // --- MARKET VIEW (NEW TABLE) ---
         if (currentMode === 'transactions') {
             html += `<div class="market-filters">
                 <div class="filter-row">
@@ -364,57 +309,67 @@
                     <div class="filter-btn ${marketTime=='10y'?'active':''}" onclick="setMarketFilter('time','10y')">10y</div>
                 </div>
             </div>`;
-            
-            var key = marketTime + '_' + marketUnit + '_' + marketStat;
-            var val = props[key];
-            var displayVal = (val !== undefined && val !== null) ? Math.round(val).toLocaleString() + (marketUnit === 'eur' ? ' €' : ' €/m²') : "-";
 
-            var salesCount = props[marketTime + '_count'] || 0;
-            var turnover = (total > 0) ? ((salesCount / total) * 100).toFixed(1) + '%' : "-";
-
-            html += '<div class="info-row"><span class="label">Value</span><span class="dots"></span><span class="value" style="font-size:1.2em; color:#8e44ad;"><b>' + displayVal + '</b></span></div>';
-            html += '<hr style="border:0; border-top:1px dashed #ccc; margin:8px 0;">';
-            html += '<div class="info-row"><span class="label">Total Stock</span><span class="dots"></span><span class="value">' + total + '</span></div>';
-            html += '<div class="info-row"><span class="label">Total Sales</span><span class="dots"></span><span class="value"><b>' + salesCount + '</b></span></div>';
-            html += '<div class="info-row"><span class="label">Turnover</span><span class="dots"></span><span class="value">' + turnover + '</span></div>';
+            html += '<table class="market-table"><thead><tr><th>Bucket</th><th>Stock</th><th>Sales</th><th>Turn%</th><th>Value</th></tr></thead><tbody>';
             
-            // FIX: Add buckets for Market view too
-            html += '<hr style="border:0; border-top:1px dashed #ccc; margin:8px 0;">';
-            html += getBucketRows(props, total);
+            var buckets = ['[0-25]', '[25-50]', '[50-75]', '[75-100]', '[100+]'];
+            
+            // Loop Rows
+            buckets.forEach(function(b) {
+                // Stock Count
+                var stockCnt = 0;
+                if(b === '[100+]') {
+                    stockCnt = (props['[100-125]']||0) + (props['[125-150]']||0) + (props['[150-175]']||0) + (props['[175-200]']||0) + (props['[200+]']||0);
+                } else {
+                    stockCnt = props[b] || 0;
+                }
+                
+                // Market Keys
+                var salesKey = marketTime + '_count_' + b;
+                var salesCnt = props[salesKey] || 0;
+                
+                var turnover = (stockCnt > 0) ? ((salesCnt / stockCnt)*100).toFixed(1) : '-';
+                
+                var valKey = marketTime + '_' + marketUnit + '_' + marketStat + '_' + b;
+                var valRaw = props[valKey];
+                var valDisplay = valRaw ? Math.round(valRaw).toLocaleString() : '-';
+
+                html += `<tr><td>${b.replace('[','').replace(']','')}</td><td>${Math.round(stockCnt)}</td><td>${salesCnt}</td><td>${turnover}</td><td>${valDisplay}</td></tr>`;
+            });
+
+            // TOTALS ROW
+            var totalSales = props[marketTime + '_count'] || 0;
+            var totalTurn = (total > 0) ? ((totalSales / total)*100).toFixed(1) : '-';
+            var totalValKey = marketTime + '_' + marketUnit + '_' + marketStat; 
+            var totalVal = props[totalValKey] ? Math.round(props[totalValKey]).toLocaleString() : '-';
+
+            html += `<tr class="total-row"><td>TOTAL</td><td>${Math.round(total)}</td><td>${totalSales}</td><td>${totalTurn}</td><td>${totalVal}</td></tr>`;
+            html += '</tbody></table>';
         } 
         
-        // --- ENERGY VIEW ---
+        // --- ENERGY VIEW (FROZEN) ---
         else if (currentMode === 'energy') {
             if (type === "neighborhood") {
-                // FIX: Calculate totals dynamically for neighborhood
                 var stats = calculateEnergyTotals(props.safe_id);
                 if (stats) {
                     html += '<div class="info-row"><span class="label">Total Buildings</span><span class="dots"></span><span class="value"><b>' + stats.total + '</b></span></div>';
                     html += '<div class="info-row"><span class="label">With Energy Data</span><span class="dots"></span><span class="value"><b>' + stats.withData + '</b></span></div>';
-                } else {
-                    html += '<div class="info-total">Loading stats...</div>';
-                }
+                } else { html += '<div class="info-total">Loading stats...</div>'; }
             } else {
-                // Building View
                 if (props.Energy_Class) {
                      html += '<div class="info-total">Class: <span style="color:'+getEnergyColor(props.Energy_Class)+'"><b>' + props.Energy_Class + '</b></span></div>';
                      html += '<div class="info-row"><span class="label">Efficiency</span><span class="dots"></span><span class="value">' + (props.Energy_Eff_Heating || '-') + '</span></div>';
                      html += '<div class="info-row"><span class="label">Consumption</span><span class="dots"></span><span class="value">' + (props.Energy_Total_Consumption || '-') + '</span></div>';
-                     // FIX: Explicit Comparison Field
                      html += '<div class="info-row"><span class="label">vs Similar</span><span class="dots"></span><span class="value">' + (props.Energy_Comparison || '-') + '</span></div>';
-                     
                      if(props.Renovation_Info && props.Renovation_Info !== 'No') html += '<div style="margin-top:5px; color:#27ae60; font-size:11px;">Renovated: ' + props.Renovation_Info + '</div>';
-                } else {
-                     html += '<div style="padding:10px; color:#999; text-align:center;">No Energy Data</div>';
-                }
+                } else { html += '<div style="padding:10px; color:#999; text-align:center;">No Energy Data</div>'; }
             }
         } 
         
-        // --- STOCK VIEW ---
+        // --- STOCK VIEW (FROZEN) ---
         else { 
             html += '<div class="info-total">Total Units: ' + total + '</div>';
-            // FIX: Always show buckets, even for neighborhoods
-            html += getBucketRows(props, total);
+            html += getStockRows(props, total);
         }
 
         div.innerHTML = html;
@@ -427,7 +382,6 @@
     }}).addTo(map);
     
     updateInfo();
-
 </script>
 </body>
 </html>
