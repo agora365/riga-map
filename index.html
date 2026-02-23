@@ -89,7 +89,6 @@
             position: absolute; z-index: 1000; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; right: 10px; 
         }
         @media (min-width: 601px) { .btn-wrapper { bottom: 30px; top: auto; } }
-        /* LABOTS: Mobilajā skatā pogas novietotas ap 60% no augšas, lai netraucētu tabiem */
         @media (max-width: 600px) { .btn-wrapper { bottom: auto; top: 60%; transform: translateY(-50%); } }
 
         .map-btn { padding: 10px 15px; background: #2c3e50; color: white; cursor: pointer; border-radius: 50px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); text-align: center; font-size: 14px;}
@@ -194,9 +193,57 @@
                 <div class="legend-item"><span class="color-box" style="background:#e74c3c"></span> Kopīpašums</div>`; 
     }
 
-    // DATA LOADING
-    function locateUser() { map.locate({setView: true, maxZoom: 16}); }
-    map.on('locationfound', function(e) { if(userMarker) map.removeLayer(userMarker); userMarker = L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup(); });
+    // --- DATA LOADING & GEOLOCATION ---
+    
+    // Palīgfunkcija: nosaka, vai punkts iekrīt GeoJSON poligonā
+    function isPointInGeoJSON(lat, lng, geojsonGeometry) {
+        var pt = [lng, lat]; // GeoJSON formāts: [garums, platums]
+        function pip(point, polygon) {
+            var x = point[0], y = point[1], inside = false;
+            for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                var xi = polygon[i][0], yi = polygon[i][1], xj = polygon[j][0], yj = polygon[j][1];
+                var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+        if (geojsonGeometry.type === 'Polygon') {
+            return pip(pt, geojsonGeometry.coordinates[0]);
+        } else if (geojsonGeometry.type === 'MultiPolygon') {
+            for (var k = 0; k < geojsonGeometry.coordinates.length; k++) {
+                if (pip(pt, geojsonGeometry.coordinates[k][0])) return true;
+            }
+        }
+        return false;
+    }
+
+    // Iecentrē karti uz lietotāju (Zoom 17 ēku līmenim)
+    function locateUser() { map.locate({setView: true, maxZoom: 17}); }
+    
+    // Kad atrašanās vieta ir fiksēta:
+    map.on('locationfound', function(e) { 
+        if(userMarker) map.removeLayer(userMarker); 
+        userMarker = L.marker(e.latlng).addTo(map).bindPopup("Tu atrodies šeit").openPopup(); 
+        
+        var foundSafeId = null;
+        
+        // Atrodam apkaimi, kurā iekrita lietotāja punkts
+        if (neighborhoodLayer) {
+            neighborhoodLayer.eachLayer(function(layer) {
+                if (foundSafeId) return; // Ja jau atrasts, pārtraucam
+                if (isPointInGeoJSON(e.latlng.lat, e.latlng.lng, layer.feature.geometry)) {
+                    foundSafeId = layer.feature.properties.safe_id;
+                }
+            });
+        }
+        
+        // Ja apkaime ir atrasta, ielādējam datus tā, it kā būtu klikšķināts
+        if (foundSafeId) {
+            if(neighborhoodLayer) map.removeLayer(neighborhoodLayer);
+            document.getElementById('backButton').style.display = 'block';
+            loadNeighborhoodData(foundSafeId);
+        }
+    });
 
     function loadNeighborhoodData(safeName) {
         currentSafeId = safeName;
@@ -265,6 +312,7 @@
         if (buildingsLayer) map.removeLayer(buildingsLayer);
         if (houseNumbersLayer) map.removeLayer(houseNumbersLayer);
         if (neighborhoodLayer) map.addLayer(neighborhoodLayer);
+        if (userMarker) { map.removeLayer(userMarker); userMarker = null; } // Dzēšam arī user markeri atgriežoties
         document.getElementById('backButton').style.display = 'none';
         document.getElementById('legendToggle').style.display = 'none';
         document.getElementById('dynamic-legend').style.display = 'none';
